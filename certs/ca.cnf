@@ -1,0 +1,10 @@
+[req]
+distinguished_name=dn
+x509_extensions=v3_ca
+prompt=no
+[dn]
+CN=PCL2 PoC Lab CA
+[v3_ca]
+basicConstraints=critical,CA:TRUE
+keyUsage=critical,keyCertSign,cRLSign
+subjectKeyIdentifier=hash

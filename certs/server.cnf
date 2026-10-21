@@ -1,0 +1,10 @@
+[req]
+distinguished_name=dn
+prompt=no
+[dn]
+CN=pcl2-server-1253424809.file.myqcloud.com
+[v3_srv]
+basicConstraints=critical,CA:FALSE
+keyUsage=critical,digitalSignature,keyEncipherment
+extendedKeyUsage=serverAuth
+subjectAltName=DNS:pcl2-server-1253424809.file.myqcloud.com
