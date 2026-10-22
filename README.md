@@ -4,6 +4,10 @@
 
 省流：PCL2 在特定情况下有能力从服务器下载命令并执行。
 
+|<img width="40%" alt="哔哩哔哩封面" src="https://github.com/user-attachments/assets/2a72b0e9-f2c0-4623-b7de-502801bc6abb" />|
+|:---|
+|[哔哩哔哩上的视频演示](https://www.bilibili.com/video/BV1LZnz6bEXb/)，谢谢“盖的二次方”帮忙上传。|
+
 ## 目录
 
 - [0. 摘要](#0-摘要)
