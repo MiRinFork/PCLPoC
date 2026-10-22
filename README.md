@@ -11,10 +11,10 @@
 - [2. 启动时的远程控制代码](#2-启动时的远程控制代码)
 - [3. 利用方法一：notice.json → setup → LaunchAdvanceRun](#method1)
 - [4. 利用方法二：notice.cfg + slientupdate → 静默更新 → 任意 exe](#method2)
-- [5. 为什么这构成"后门"](#6-为什么这构成后门而不只是自动更新)
-- [6. PoC](#7-poc)
-- [7. 检测与响应](#8-检测与响应)
-- [8. 附录](#9-附录)
+- [5. 为什么这构成"后门"](#backdoor)
+- [6. PoC](#poc)
+- [7. 检测与响应](#response)
+- [8. 附录](#footnotes)
 
 ## 0. 摘要
 
@@ -443,7 +443,7 @@ flowchart TD
 
 而不是偷偷给你运行一个包，美名其曰静默更新，其他整合包、启动器都有。上面规划是好的，就是执行坏了？
 
-## 5. 为什么这是"后门"，不是自动更新？
+## 5. 为什么这是"后门"，不是自动更新？<a id="backdoor" ></a>
 
 | 能力 | 实现 | 后门特征 |
 |---|---|---|
@@ -495,7 +495,7 @@ Android 某 Root 程序 S……e 在服务器塞反注入代码，有两种行�
 | 命令与控制 | T1105 Ingress Tool Transfer | `certutil` / 任意 `.zip` 下载 |
 | 影响 | T1554 Compromise Host Software Binary | 静默替换 `PCL\Plain Craft Launcher 2.exe` |
 
-## 6. PoC
+## 6. PoC<a id="poc" ></a>
 
 ### 6.1 设计
 
@@ -601,7 +601,7 @@ powershell.exe -File .\server.ps1 -Mode update -Port 443 -PayloadExe C:\Users\Pu
 2. 点击页面 `Continue` 后 `calc.exe` 启动，marker 生成；
 3. PCL 日志出现 `执行自定义事件：执行命令, C:\Users\Public\pclpoc.exe`。
 
-## 7. 检测与响应
+## 7. 检测与响应<a id="response" ></a>
 
 ### 7.1 主机侧
 
@@ -639,7 +639,7 @@ powershell.exe -File .\server.ps1 -Mode update -Port 443 -PayloadExe C:\Users\Pu
 | 影响 | 当前用户权限任意代码执行、持久化、数据窃取、批量控制 |
 | 检测难度 | 中高：无文件落地也可通过 `PCL\Plain Craft Launcher 2.exe` 暂存发现；日志有特征 |
 
-## 8. 附录
+## 8. 附录<a id="footnotes" ></a>
 
 ### A. 关键代码位置
 
