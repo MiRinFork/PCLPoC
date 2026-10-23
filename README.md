@@ -8,6 +8,10 @@
 |:---|
 |[哔哩哔哩上的视频演示](https://www.bilibili.com/video/BV1LZnz6bEXb/)，谢谢“盖的二次方”帮忙上传。|
 
+研究员利益相关：https://github.com/MiRinFork/PCLPoC/discussions/1
+
+避免不必要的讨论，谢谢。
+
 ## 目录
 
 - [0. 摘要](#0-摘要)
