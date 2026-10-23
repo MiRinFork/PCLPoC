@@ -10,6 +10,8 @@
 
 我也希望龙腾跳跃能给出更好的解决办法。
 
+另在此谴责使用我的 PoC 去做恶意的行为。
+
 正如我第一次与 PCL 见面，我希望 PCL 越来越好。
 
 <img width="20%" alt="祝PCL做的越来越好" src="https://github.com/user-attachments/assets/17b72cd3-b82d-4faf-b456-41325274f57b" />
