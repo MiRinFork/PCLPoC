@@ -1,0 +1,16 @@
+# 2.99.0.1 复查样本
+
+## 新版
+
+```
+4d239a62ed66fb9ebcf4633fd881eb098e9a7e4f296f0e414b58aa2f1f7f7830  PCL 正式版 2.99.0.1.zip
+0db34e19d9eeb6d496d20fabe786ec16bbd36ba6b0ccdc8d29cb7e909c114397  Plain Craft Launcher 2.exe (2.99.0.1)
+4d239a62ed66fb9ebcf4633fd881eb098e9a7e4f296f0e414b58aa2f1f7f7830  upstream/最新正式版.zip (Hex-Dragon/PCL2 93ede5d)
+```
+
+## 旧版（对照）
+
+```
+6b6e1260cb5a1d6a303855f1c60cab3d0bc1aebba7e40a964180188b271e7386  Plain Craft Launcher 2.exe (2.99.0.0)
+01877f06df84cbab376c286a633e76ef7fca0bb469e26df97f3b09b5abd503bc  upstream/最新正式版.zip (Hex-Dragon/PCL2 6b9a50d)
+```

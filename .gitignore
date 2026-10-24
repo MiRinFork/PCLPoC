@@ -1,0 +1,6 @@
+# 本地归档：旧分析、旧样本、旧报告
+/archive/
+
+# PCL 本体：发布包与解包后的 exe
+/PCL*.zip
+/Plain Craft Launcher 2.exe
