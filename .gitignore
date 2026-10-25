@@ -4,3 +4,6 @@
 # PCL 本体：发布包与解包后的 exe
 /PCL*.zip
 /Plain Craft Launcher 2.exe
+
+# Local VM working copy (distributable harness is repeat/)
+/vm/

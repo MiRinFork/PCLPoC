@@ -1,0 +1,9 @@
+step1	打开 Windows 10 LTSC 2021 隔离虚拟机
+step2	复制新版 PCL 2.99.0.1 压缩包到桌面
+step3	解压到桌面
+step4	运行 PoC：伪造公告服务器、hosts 与自签 CA
+method1	方法一：LaunchAdvanceRun 已被 2.99.0.1 拉黑，payload 未执行
+step6	删掉整个 PCL
+step7	方法二：notice.cfg + slientupdate → 静默更新 → 任意 exe
+success	零点击成功：PCL 退出时执行下载的 exe
+end	结论：方法一被堵，方法二仍然可用

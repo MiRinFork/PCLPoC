@@ -29,6 +29,15 @@
 | `slientupdate` → 任意 zip → 替换自身 | 有 | 有 |
 | `HasUpdatePermission` | `=> true` | `=> true` |
 
+## 动态验证（2026-10-25）
+
+已在隔离的 Windows 10 Enterprise LTSC 2021 VM 上复跑：
+
+- 方法一：PCL 日志 `被禁止的设置项：LaunchAdvanceRun`，无 marker；
+- 方法二：staging exe 与 `update.zip` entry 的 SHA-256 相同，marker 写入，Calculator 拉起；
+- 视频与证据：[`vm-test/`](vm-test/README.md)、[`pcl-2.99.0.1-poc-demo.mp4`](vm-test/pcl-2.99.0.1-poc-demo.mp4)；
+- 复现脚本：[`repeat/`](../../repeat/README.md)。
+
 ## 样本
 
 用户给的 `PCL 正式版 2.99.0.1.zip`，SHA-256
@@ -51,7 +60,7 @@
 ```
 
 19 个 `.cs` 里大部分是版本号 413 → 415、更新日志、删 MC 下载入口和 UI。跟远程执行有关
-的只有 `ModSecret.cs` 的 `setup` 黑名单。这次只是静态 diff，没在 Windows VM 上重跑 PoC。
+的只有 `ModSecret.cs` 的 `setup` 黑名单。除了静态 diff，这次还在 Windows 10 LTSC 2021 VM 上重跑了 PoC：方法一被黑名单拦截，方法二仍然零点击成功。详见 [vm-test](vm-test/README.md)（含录屏、逐帧和证据）。
 
 ## 2.99.0.1 堵了什么
 

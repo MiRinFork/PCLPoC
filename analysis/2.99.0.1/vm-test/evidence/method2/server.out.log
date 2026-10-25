@@ -1,0 +1,8 @@
+[03:06:27] update.zip built from C:\Users\Public\pclpoc.exe (1806 bytes)
+[03:06:27] https://127.0.0.1:443 mode=update
+[03:06:28] forged host: pcl2-server-1253424809.file.myqcloud.com
+[03:06:28] err Exception calling "AuthenticateAsServer" with "4" argument(s): "Authentication failed because the remote party has closed the transport stream."
+[03:06:31] req /notice.cfg -> 200
+[03:06:32] req /ServerConfig.json -> 200
+[03:06:32] req /notice.json -> 200
+[03:06:32] req /update.zip -> 200

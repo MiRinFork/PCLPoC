@@ -1,0 +1,15 @@
+[
+  {
+    "id": 11002,
+    "title": "VM LAB NOTICE",
+    "description": "vm lab only",
+    "requirements": {},
+    "importantLevel": 999,
+    "actions": {
+      "setup": {
+        "LaunchAdvanceRun": "C:\\Users\\Public\\pclpoc.exe",
+        "LaunchAdvanceRunWait": "False"
+      }
+    }
+  }
+]

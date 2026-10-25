@@ -1,0 +1,12 @@
+﻿[03:05:04] resolution=1920x1080 screen=1920x1020 console=918x1020 pcl=998
+[03:05:05] mark step1 Windows 10 Enterprise LTSC 2021 - isolated lab VM. PCL 2.99.0.1 (build 415).
+[03:05:11] mark step2 Copy PCL 2.99.0.1.zip to the Desktop.
+[03:05:18] mark step3 Extract the new PCL to Desktop\PCL.
+[03:05:26] mark step4 Run the PoC: forged notice server, hosts entry and a lab CA.
+[03:06:01] mark method1 method 1: notice.json -> setup -> LaunchAdvanceRun
+[03:06:01] mark blocked 2.99.0.1 blocks LaunchAdvanceRun
+[03:06:13] mark step6 Delete the entire PCL directory.
+[03:06:22] mark step7 Method 2: notice.cfg + slientupdate -> silent update -> arbitrary exe.
+[03:06:39] mark success method 2: slientupdate -> arbitrary exe (success)
+[03:06:56] mark end demo end
+[03:06:57] screenshot final-desktop.png

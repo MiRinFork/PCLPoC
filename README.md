@@ -1,7 +1,7 @@
 1. [向龙腾猫跃的道歉公告](#my-apology)
 2. [PCL PoC 与研究报告](#report)
 
-[2026-10-25 更新 2.99.0.1 删掉了吗？没有——见复查报告](analysis/2.99.0.1/README.md)
+[2026-10-25 更新 2.99.0.1 删掉了吗？没有——见复查报告](analysis/2.99.0.1/README.md)；[Windows VM 动态复现与录屏](analysis/2.99.0.1/vm-test/README.md)
 
 # 重申为什么我的观点倾向于 PCL 有一个后门。
 

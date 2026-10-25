@@ -1,0 +1,21 @@
+﻿PCL2 notice.json PoC - 2026-10-25T03:06:24.0524430+08:00
+[03:06:24] PCL: C:\Users\Administrator\Desktop\PCL\Plain Craft Launcher 2.exe
+[03:06:24] hosts already contains the lab entry.
+[03:06:24] DNS cache flushed.
+[03:06:24] Generating lab CA and leaf certificates ...
+[03:06:24] CA generated: 5905F23B030711502A1BE07211CA919E638404A5
+[03:06:24] leaf generated: 14654FAC23BE9D40AF14DAF305B15EE8DAB81B03
+[03:06:24] payload compiled: C:\Users\Public\pclpoc.exe
+[03:06:27] PoC server listening on https://127.0.0.1:443 (mode=update)
+[03:06:27] Starting PCL ...
+[03:06:28] PCL PID 2444
+[03:06:28] Waiting for the silent update to stage PCL\Plain Craft Launcher 2.exe ...
+[03:06:32] update payload staged.
+[03:06:34] Closing PCL PID 2444 ...
+[03:06:35] Waiting up to 60 seconds for C:\Users\ADMINI~1\AppData\Local\Temp\pcl-poc-marker.txt ...
+[03:06:36] Cleanup ...
+[03:06:36] CA removed.
+[03:06:36] leaf certificate removed.
+[03:06:36] hosts restored.
+[03:06:36] PCL registry restored.
+[03:06:36] Done.

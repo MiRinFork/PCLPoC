@@ -1,0 +1,6 @@
+[03:05:35] https://127.0.0.1:443 mode=launch
+[03:05:35] forged host: pcl2-server-1253424809.file.myqcloud.com
+[03:05:35] err Exception calling "AuthenticateAsServer" with "4" argument(s): "Authentication failed because the remote party has closed the transport stream."
+[03:05:48] req /notice.cfg -> 200
+[03:05:49] req /ServerConfig.json -> 200
+[03:05:49] req /notice.json -> 200
