@@ -49,9 +49,11 @@
 官方仓库 `Hex-Dragon/PCL2` 的发布提交是 `93ede5d`（`2.99.0.1 正式版`）。这个提交里的
 `最新正式版.zip` 和用户给的 zip 逐字节一样，解出来的 exe 也一样。不是二次打包。
 
-## 反编译对了一下
+## 反编译
 
-两个 exe 都用 `ilspycmd 9.1 -p` 反编译，逐文件 diff：
+`ilspycmd` 反编译。
+
+diff：
 
 ```text
 .cs     变了 19 / 164
@@ -59,10 +61,16 @@
 其它    2 个（PCL.Resources.resx、Plain Craft Launcher 2.csproj）
 ```
 
-19 个 `.cs` 里大部分是版本号 413 → 415、更新日志、删 MC 下载入口和 UI。跟远程执行有关
-的只有 `ModSecret.cs` 的 `setup` 黑名单。除了静态 diff，这次还在 Windows 10 LTSC 2021 VM 上重跑了 PoC：方法一被黑名单拦截，方法二仍然零点击成功。详见 [vm-test](vm-test/README.md)（含录屏、逐帧和证据）。
+19 个 `.cs` 里大部分是版本号 413 → 415、更新日志、删 MC 下载入口和 UI。
 
-## 2.99.0.1 堵了什么
+跟远程执行有关
+的只有 `ModSecret.cs` 的 `setup` 黑名单。
+
+这次在 Windows 10 LTSC 2021 上重跑了 PoC。1-Click RCE 被拦截，0-Click RCE 复现成功。
+
+详见 [vm-test](vm-test/README.md)。
+
+## 1-Click RCE 缺陷死啦！
 
 ```csharp
 // PCL/ModSecret.cs:1495-1510
@@ -80,7 +88,7 @@ case "setup":
     {
         if (source.Contains(item4.Key))
         {
-            throw new Exception("被禁止的设置项：" + item4.Key);
+            throw new Exception("被禁止的设置项：" + item4.Key); // 遇到黑名单的 key 直接退出抛出异常。
         }
         Settings.Set(item4.Key, item4.Value.ToString());
     }
@@ -88,22 +96,16 @@ case "setup":
 }
 ```
 
-几个细节：
+异常被每个 action 外面的 `catch` 捕获，日志里只留一句“执行 PCL 服务器公告动作失败”。
 
-- 键名精确匹配。碰到黑名单里的键就抛，循环中断，后面的键不写了；前面已经写进去的键
-  不回滚。
-- 异常被每个 action 外面的 `catch` 吃掉，日志里只留一句“执行 PCL 服务器公告动作失败”。
-- `Settings.Entries` 是 `Dictionary<string, Setting>`（`ToDictionary(e => e.Key)`，默认
-  ordinal），大小写变体在 `Settings.Set` 里也找不到，绕不过去。
-- 黑名单只有 12 个键，`setup` 还是能写别的键。这是黑名单，不是把 `setup` 关了。
+`setup` 功能依旧保留。
 
-2.99.0.0 报告里的方法一，`LaunchAdvanceRun` 就在黑名单第一位，所以在 2.99.0.1 上没了。
+1-Click RCE 缺陷已近无利用价值。
+## <img src="update.png" align="right" alt="老实更新，很枯燥吧？"  width="30%" > 0-Click RCE 缺陷：老实更新，很枯燥吧？ 
 
-## 没动的：slientupdate
+依旧是。
 
-从拉到执行，链子是这样的：
-
-1. 启动拉 `notice.cfg`：
+1. 启动下载 `notice.cfg`：
 
    ```csharp
    // PCL/ModSecret.cs:1324-1325
@@ -112,7 +114,7 @@ case "setup":
    num3 = (int)Math.Round(ModBase.Val(StringExtensions.Split(text3, "|", false)[0]));
    ```
 
-2. `notice.cfg` 第五段是配置版本，比本地大就重下 `ServerConfig.json`：
+2. 下载 `ServerConfig.json`：
 
    ```csharp
    // PCL/ModSecret.cs:1378-1383
@@ -125,7 +127,7 @@ case "setup":
    }
    ```
 
-3. 拉 `notice.json`，然后按里面的 `actions` 干活：
+3. 做 `action`：
 
    ```csharp
    // PCL/ModSecret.cs:1403-1404
@@ -135,11 +137,11 @@ case "setup":
    FileUtils.Write(ModBase.PathTemp + "Cache\\Notice.json", text4, (Encoding)null);
    ```
 
-4. `slientupdate` 不用确认，因为权限判断写死成 `true`：
+4. `slientupdate`  `true`：
 
    ```csharp
    // PCL/ModSecret.cs:402
-   private static bool HasUpdatePermission => true;
+   private static bool HasUpdatePermission => true; // 永远
 
    // PCL/ModSecret.cs:1513-1530
    case "update":
@@ -157,7 +159,7 @@ case "setup":
    }
    ```
 
-5. `UpdateStart` 从 `ServerConfig` 拿下载地址，扩展名直接从 URL 里取：
+5. `UpdateStart` 依旧自定义不固定 URL：
 
    ```csharp
    // PCL/ModSecret.cs:1017-1037
@@ -178,9 +180,9 @@ case "setup":
    }.ToList();
    ```
 
-   `ModNet.NetFile` 只有 URL 和本地路径，没有哈希，没有签名。
+    同类型启动器至少校验 SHA256。
 
-6. 解压覆盖，静默时只记一个“等重启”：
+6. 依旧覆盖。
 
    ```csharp
    // PCL/ModSecret.cs:198-211
@@ -201,7 +203,7 @@ case "setup":
    }
    ```
 
-7. 用户正常退出，启动覆盖后的 exe：
+7. 依旧静默更新。
 
    ```csharp
    // PCL/FormMain.cs:1968
@@ -235,14 +237,6 @@ case "setup":
        }
    }
    ```
-
-全程没有 Authenticode、SHA-256、内容签名。`{CDN}` 那个 `SecretCdnSign` 还是硬编码密钥
-`PCL2Server` 的 MD5 查询串（`ModSecret.cs:428`），只管 URL，不管响应内容。
-
-## 对现有 PoC
-
-- `update` 模式还能用；
-- `launch` 模式会被黑名单拦。
 
 ## 复现
 
