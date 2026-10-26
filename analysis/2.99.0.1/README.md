@@ -4,50 +4,21 @@
 
 ## 结论
 
-没删。
+没删，但利用价值降低了。
 
-2.99.0.1 跟远程执行有关的改动只有一个：给 `notice.json` 的 `setup` 加了个 12 个键的
-黑名单，把 `LaunchAdvanceRun` 这些直接堵了。`slientupdate` 那条静默更新链还是老样子，
-0 click：
+2.99.0.1 跟远程执行有关的改动仅一个。
 
-- `HasUpdatePermission => true`（`ModSecret.cs:402`）
-- `slientupdate` 直接 `UpdateStart(true)`（1513–1530）
-- 下载地址来自未签名的 `ServerConfig`（1017–1037）
-- 没有哈希，没有签名，zip 解压覆盖 `PCL\Plain Craft Launcher 2.exe`（198–211）
-- 静默时只置 `IsUpdateWaitingRestart`，退出时 `UpdateRestart(false)` 启动新 exe
-  （`FormMain.cs:1968`、`ModSecret.cs:1084`）
-
-按报告原来的前提——能控制公告 CDN 的内容，或者做 DNS/TLS 中间人——还是能零点击换掉
-启动器本体。
-
-| | 2.99.0.0 | 2.99.0.1 |
-|---|---|---|
-| 启动拉 `notice.cfg` / `notice.json` / `ServerConfig.json` | 有 | 有 |
-| 配置内容签名 / 更新包哈希 | 无 | 无 |
-| `setup` 写设置 | 任意键 | 12 键黑名单 |
-| `setup.LaunchAdvanceRun` → `cmd /c` | 可写 | 被拦 |
-| `slientupdate` → 任意 zip → 替换自身 | 有 | 有 |
-| `HasUpdatePermission` | `=> true` | `=> true` |
-
-## 动态验证（2026-10-25）
-
-已在隔离的 Windows 10 Enterprise LTSC 2021 VM 上复跑：
-
-- 方法一：PCL 日志 `被禁止的设置项：LaunchAdvanceRun`，无 marker；
-- 方法二：staging exe 与 `update.zip` entry 的 SHA-256 相同，marker 写入，Calculator 拉起；
-- 视频与证据：[`vm-test/`](vm-test/README.md)、[`pcl-2.99.0.1-poc-demo.mp4`](vm-test/pcl-2.99.0.1-poc-demo.mp4)；
-- 复现脚本：[`repeat/`](../../repeat/README.md)。
+给 `notice.json` 的 `setup` 加了个 12 个键的黑名单，降低了利用价值。
 
 ## 样本
 
-用户给的 `PCL 正式版 2.99.0.1.zip`，SHA-256
-`4d239a62ed66fb9ebcf4633fd881eb098e9a7e4f296f0e414b58aa2f1f7f7830`。里面一个
-`Plain Craft Launcher 2.exe`，6,013,952 字节，SHA-256
-`0db34e19d9eeb6d496d20fabe786ec16bbd36ba6b0ccdc8d29cb7e909c114397`。PE 的
-`Security Directory` 还是 0，没签名。
+`PCL 正式版 2.99.0.1.zip`
 
-官方仓库 `Hex-Dragon/PCL2` 的发布提交是 `93ede5d`（`2.99.0.1 正式版`）。这个提交里的
-`最新正式版.zip` 和用户给的 zip 逐字节一样，解出来的 exe 也一样。不是二次打包。
+SHA-256 `4d239a62ed66fb9ebcf4633fd881eb098e9a7e4f296f0e414b58aa2f1f7f7830`
+
+里面 `Plain Craft Launcher 2.exe`
+
+SHA-256 `0db34e19d9eeb6d496d20fabe786ec16bbd36ba6b0ccdc8d29cb7e909c114397`
 
 ## 反编译
 
@@ -61,14 +32,14 @@ diff：
 其它    2 个（PCL.Resources.resx、Plain Craft Launcher 2.csproj）
 ```
 
-19 个 `.cs` 里大部分是版本号 413 → 415、更新日志、删 MC 下载入口和 UI。
+19 个 `.cs` 里大部分是版本号变更、更新日志、删 MC 下载入口和 UI。
 
 跟远程执行有关
 的只有 `ModSecret.cs` 的 `setup` 黑名单。
 
 这次在 Windows 10 LTSC 2021 上重跑了 PoC。1-Click RCE 被拦截，0-Click RCE 复现成功。
 
-详见 [vm-test](vm-test/README.md)。
+详见 [vm-test](vm-test/README.md)。复现脚本[`repeat/`](../../repeat/README.md)。
 
 ## 1-Click RCE 缺陷死啦！
 
