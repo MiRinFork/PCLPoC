@@ -694,3 +694,13 @@ powershell.exe -File .\server.ps1 -Mode update -Port 443 -PayloadExe C:\Users\Pu
   - <https://github.com/Meloong-Git/PCL/security/advisories/GHSA-x9wr-mgmx-3hqp>（xmlns 过滤绕过）
   - <https://github.com/Meloong-Git/PCL/security/advisories/GHSA-gp33-rfmf-5f38>（ZipSlip）
   - <https://github.com/Meloong-Git/PCL/security/advisories/GHSA-22mj-jjhv-rxm4>（日志泄露 AccessToken）
+
+### C. 此前的 issue
+
+“我从未收到过相关问题的 Issue 或 Security Advisory。”龙腾猫跃于“有关 PCL 存在所谓‘后门 / 漏洞’的说明”言。
+
+本文并非原创，在 SEDET 前已有相关讨论，故不考虑本 PCL PoC 为新的问题。故未发送任何 Issue 或 Security Advisory。
+
+- https://github.com/Meloong-Git/PCL/issues/9465
+- https://github.com/Meloong-Git/PCL/issues/7854
+- https://github.com/Meloong-Git/PCL/issues/1974
